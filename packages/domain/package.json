@@ -1,0 +1,27 @@
+{
+  "name": "@fuelms/domain",
+  "version": "0.1.0",
+  "description": "DDD building blocks — ValueObject, Entity, AggregateRoot, DomainEvent, IRepository. No framework. No persistence.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@fuelms/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vitest": "^3.2.4"
+  }
+}

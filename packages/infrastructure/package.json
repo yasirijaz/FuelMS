@@ -1,0 +1,25 @@
+{
+  "name": "@fuelms/infrastructure",
+  "version": "0.1.0",
+  "description": "Infrastructure contracts — ITransactionContext, IUnitOfWork, IEventBus. Implementations live in apps.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@fuelms/core": "workspace:*",
+    "@fuelms/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2"
+  }
+}

@@ -1,0 +1,130 @@
+:root {
+  color-scheme: light;
+
+  /* Surfaces — Stripe-like neutral stack */
+  --ui-bg: #f7f8fa;
+  --ui-surface: #ffffff;
+  --ui-surface-muted: #f3f4f6;
+  --ui-surface-hover: #f8fafc;
+  --ui-sidebar: #0f172a;
+  --ui-sidebar-border: rgba(255, 255, 255, 0.08);
+
+  /* Text — Notion-like hierarchy */
+  --ui-text: #0f172a;
+  --ui-text-muted: #64748b;
+  --ui-text-subtle: #94a3b8;
+
+  /* Borders — Linear-like hairlines */
+  --ui-border: #e5e7eb;
+  --ui-border-strong: #cbd5e1;
+
+  /* Accent — restrained enterprise blue */
+  --ui-accent: #111827;
+  --ui-accent-fg: #ffffff;
+  --ui-accent-soft: #eef2ff;
+  --ui-ring: #6366f1;
+
+  /* Semantic */
+  --ui-success-bg: #ecfdf5;
+  --ui-success-border: #a7f3d0;
+  --ui-warning-bg: #fffbeb;
+  --ui-warning-border: #fde68a;
+  --ui-danger: #dc2626;
+  --ui-danger-bg: #fef2f2;
+  --ui-danger-border: #fecaca;
+
+  /* Elevation */
+  --ui-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --ui-shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --ui-shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.12);
+
+  /* Radius & layers */
+  --ui-radius: 0.5rem;
+  --ui-radius-lg: 0.75rem;
+  --ui-z-header: 20;
+  --ui-z-sidebar: 40;
+  --ui-z-modal: 50;
+  --ui-z-toast: 60;
+  --ui-z-command: 70;
+
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --ui-bg: #0b1220;
+  --ui-surface: #111827;
+  --ui-surface-muted: #1f2937;
+  --ui-surface-hover: #1a2332;
+  --ui-sidebar: #030712;
+  --ui-sidebar-border: rgba(255, 255, 255, 0.08);
+
+  --ui-text: #f8fafc;
+  --ui-text-muted: #94a3b8;
+  --ui-text-subtle: #64748b;
+
+  --ui-border: #243044;
+  --ui-border-strong: #334155;
+
+  --ui-accent: #f8fafc;
+  --ui-accent-fg: #0f172a;
+  --ui-accent-soft: #1e293b;
+  --ui-ring: #818cf8;
+
+  --ui-success-bg: #052e1a;
+  --ui-success-border: #065f46;
+  --ui-warning-bg: #3b2f05;
+  --ui-warning-border: #854d0e;
+  --ui-danger: #f87171;
+  --ui-danger-bg: #3f1d1d;
+  --ui-danger-border: #7f1d1d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ui-ring);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

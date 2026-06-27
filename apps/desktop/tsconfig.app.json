@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    "types": ["vite/client", "vitest/globals"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* In-app path aliases */
+    "paths": {
+      "@/*": ["./src/*"],
+      "@app/*": ["./src/app/*"],
+      "@features/*": ["./src/features/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@styles/*": ["./src/styles/*"],
+
+      /* Workspace package aliases — point to source for zero-build-step dev */
+      "@fuelms/core": ["../../packages/core/src/index.ts"],
+      "@fuelms/core/*": ["../../packages/core/src/*"],
+      "@fuelms/domain": ["../../packages/domain/src/index.ts"],
+      "@fuelms/domain/*": ["../../packages/domain/src/*"],
+      "@fuelms/infrastructure": ["../../packages/infrastructure/src/index.ts"],
+      "@fuelms/infrastructure/*": ["../../packages/infrastructure/src/*"],
+      "@fuelms/shared": ["../../packages/shared/src/index.ts"],
+      "@fuelms/shared/*": ["../../packages/shared/src/*"],
+      "@fuelms/testing": ["../../packages/testing/src/index.ts"],
+      "@fuelms/testing/*": ["../../packages/testing/src/*"],
+      "@fuelms/ui": ["../../packages/ui/src/index.ts"],
+      "@fuelms/ui/*": ["../../packages/ui/src/*"]
+    },
+
+    /* Strict linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}

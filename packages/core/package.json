@@ -1,0 +1,24 @@
+{
+  "name": "@fuelms/core",
+  "version": "0.1.0",
+  "description": "Platform primitives — Result<T>, UniqueId, error hierarchy, Logger interface. Zero framework dependencies.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc -b"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vitest": "^3.2.4"
+  }
+}

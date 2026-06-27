@@ -1,0 +1,26 @@
+{
+  "name": "@fuelms/testing",
+  "version": "0.1.0",
+  "description": "Test utilities — InMemoryRepository, MockLogger, DomainEventCapture, ResultAssert. devDependency only — never ships in production.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@fuelms/core": "workspace:*",
+    "@fuelms/domain": "workspace:*",
+    "@fuelms/infrastructure": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2"
+  }
+}

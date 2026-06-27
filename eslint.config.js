@@ -7,7 +7,12 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'src-tauri/target'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/src-tauri/target/**',
+      'apps/desktop/playwright.config.ts',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -16,6 +21,7 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         ...globals.browser,
+        ...globals.node,
       },
     },
     plugins: {
@@ -24,10 +30,11 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
     },
   },
   eslintConfigPrettier,
