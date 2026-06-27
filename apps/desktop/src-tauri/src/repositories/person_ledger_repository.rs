@@ -3,9 +3,9 @@ use uuid::Uuid;
 
 use crate::db::connection::DbConnection;
 use crate::dto::person_ledger::{
-    CommandErrorDto, PersonLedgerBalanceDto, PersonLedgerBalanceListQueryDto,
-    PersonLedgerEntryDto, PersonLedgerEntryListQueryDto, RecordPersonBorrowInputDto,
-    RecordPersonCollectLoanInputDto, RecordPersonLendInputDto, RecordPersonRepayBorrowedInputDto,
+    CommandErrorDto, PersonLedgerBalanceDto, PersonLedgerBalanceListQueryDto, PersonLedgerEntryDto,
+    PersonLedgerEntryListQueryDto, RecordPersonBorrowInputDto, RecordPersonCollectLoanInputDto,
+    RecordPersonLendInputDto, RecordPersonRepayBorrowedInputDto,
 };
 
 pub struct PersonLedgerRepository<'a> {
@@ -85,10 +85,7 @@ impl<'a> PersonLedgerRepository<'a> {
 
         sql.push_str(" ORDER BY ABS(balance_minor) DESC, bp.display_name ASC");
 
-        let search_pattern = query
-            .search
-            .as_ref()
-            .map(|s| format!("%{}%", s.trim()));
+        let search_pattern = query.search.as_ref().map(|s| format!("%{}%", s.trim()));
 
         let mut bind_values: Vec<rusqlite::types::Value> = Vec::new();
         if let Some(pattern) = search_pattern {
@@ -102,8 +99,10 @@ impl<'a> PersonLedgerRepository<'a> {
             .prepare(&sql)
             .map_err(|e| db_error("DB_PREPARE_FAILED", &e.to_string()))?;
 
-        let param_refs: Vec<&dyn rusqlite::ToSql> =
-            bind_values.iter().map(|v| v as &dyn rusqlite::ToSql).collect();
+        let param_refs: Vec<&dyn rusqlite::ToSql> = bind_values
+            .iter()
+            .map(|v| v as &dyn rusqlite::ToSql)
+            .collect();
 
         let rows: Vec<(String, String, i64, i64, Option<String>)> = stmt
             .query_map(param_refs.as_slice(), |row| {
@@ -463,7 +462,10 @@ impl<'a> PersonLedgerRepository<'a> {
 
     fn validate_cash_amount(&self, amount_minor: i64) -> Result<(), CommandErrorDto> {
         if amount_minor <= 0 {
-            return Err(conflict("INVALID_AMOUNT", "Amount must be greater than zero."));
+            return Err(conflict(
+                "INVALID_AMOUNT",
+                "Amount must be greater than zero.",
+            ));
         }
         Ok(())
     }

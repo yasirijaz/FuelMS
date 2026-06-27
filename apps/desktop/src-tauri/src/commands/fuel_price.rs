@@ -71,7 +71,9 @@ pub fn fuel_price_get_active_by_product(
     db: State<'_, AppDatabase>,
     product_id: String,
 ) -> CommandResultDto<Option<FuelPriceRecordDto>> {
-    match db.with_connection(|conn| FuelPriceRepository::new(conn).find_active_by_product(&product_id)) {
+    match db
+        .with_connection(|conn| FuelPriceRepository::new(conn).find_active_by_product(&product_id))
+    {
         Ok(dto) => CommandResultDto::ok(dto),
         Err(e) => CommandResultDto {
             ok: false,
@@ -82,7 +84,9 @@ pub fn fuel_price_get_active_by_product(
 }
 
 #[tauri::command]
-pub fn fuel_price_list_active(db: State<'_, AppDatabase>) -> CommandResultDto<Vec<FuelPriceRecordDto>> {
+pub fn fuel_price_list_active(
+    db: State<'_, AppDatabase>,
+) -> CommandResultDto<Vec<FuelPriceRecordDto>> {
     match db.with_connection(|conn| FuelPriceRepository::new(conn).list_active()) {
         Ok(rows) => CommandResultDto::ok(rows),
         Err(e) => CommandResultDto {

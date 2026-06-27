@@ -71,7 +71,8 @@ impl<'a> WorkspaceRepository<'a> {
         if updated == 0 {
             return Err(CommandErrorDto {
                 code: "WORKSPACE_VERSION_CONFLICT".to_string(),
-                message: "Workspace was modified by another process. Refresh and try again.".to_string(),
+                message: "Workspace was modified by another process. Refresh and try again."
+                    .to_string(),
                 kind: "conflict".to_string(),
             });
         }
@@ -125,7 +126,8 @@ impl<'a> WorkspaceRepository<'a> {
         if updated == 0 {
             return Err(CommandErrorDto {
                 code: "WORKSPACE_VERSION_CONFLICT".to_string(),
-                message: "Workspace was modified by another process. Refresh and try again.".to_string(),
+                message: "Workspace was modified by another process. Refresh and try again."
+                    .to_string(),
                 kind: "conflict".to_string(),
             });
         }
@@ -191,6 +193,9 @@ mod tests {
             .set_active_organization(Some(&org.id), workspace.version)
             .unwrap();
 
-        assert_eq!(updated.active_organization_id.as_deref(), Some(org.id.as_str()));
+        assert_eq!(
+            updated.active_organization_id.as_deref(),
+            Some(org.id.as_str())
+        );
     }
 }

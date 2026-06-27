@@ -105,21 +105,18 @@ impl<'a> ReportsRepository<'a> {
             .map_err(|e| db_error("DB_PREPARE_FAILED", &e.to_string()))?;
 
         let lines = stmt
-            .query_map(
-                params![query.from_date_iso, query.to_date_iso],
-                |row| {
-                    let revenue: i64 = row.get("revenue_minor")?;
-                    let cogs: i64 = row.get("cogs_minor")?;
-                    Ok(FuelSalesSummaryLineDto {
-                        product_code: row.get("product_code")?,
-                        sale_count: row.get("sale_count")?,
-                        quantity_milli_litres: row.get("quantity_milli_litres")?,
-                        revenue_minor: revenue,
-                        cogs_minor: cogs,
-                        gross_profit_minor: revenue - cogs,
-                    })
-                },
-            )
+            .query_map(params![query.from_date_iso, query.to_date_iso], |row| {
+                let revenue: i64 = row.get("revenue_minor")?;
+                let cogs: i64 = row.get("cogs_minor")?;
+                Ok(FuelSalesSummaryLineDto {
+                    product_code: row.get("product_code")?,
+                    sale_count: row.get("sale_count")?,
+                    quantity_milli_litres: row.get("quantity_milli_litres")?,
+                    revenue_minor: revenue,
+                    cogs_minor: cogs,
+                    gross_profit_minor: revenue - cogs,
+                })
+            })
             .map_err(|e| db_error("DB_QUERY_FAILED", &e.to_string()))?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| db_error("DB_ROW_MAP_FAILED", &e.to_string()))?;
@@ -317,7 +314,11 @@ impl<'a> ReportsRepository<'a> {
             .map_err(|e| db_error("DB_ROW_MAP_FAILED", &e.to_string()))?;
 
         if product_codes.is_empty() {
-            product_codes = vec!["diesel".to_string(), "petrol".to_string(), "hobc".to_string()];
+            product_codes = vec![
+                "diesel".to_string(),
+                "petrol".to_string(),
+                "hobc".to_string(),
+            ];
         }
 
         let mut products = Vec::new();
@@ -460,10 +461,21 @@ impl<'a> ReportsRepository<'a> {
 
     fn validate_date_range(query: &ReportDateRangeQueryDto) -> Result<(), CommandErrorDto> {
         if query.from_date_iso.trim().is_empty() || query.to_date_iso.trim().is_empty() {
-            return Err(conflict("DATE_RANGE_REQUIRED", "From and to dates are required."));
+            return Err(conflict(
+                "DATE_RANGE_REQUIRED",
+                "From and to dates are required.",
+            ));
         }
-        let from = query.from_date_iso.split('T').next().unwrap_or(&query.from_date_iso);
-        let to = query.to_date_iso.split('T').next().unwrap_or(&query.to_date_iso);
+        let from = query
+            .from_date_iso
+            .split('T')
+            .next()
+            .unwrap_or(&query.from_date_iso);
+        let to = query
+            .to_date_iso
+            .split('T')
+            .next()
+            .unwrap_or(&query.to_date_iso);
         if from > to {
             return Err(conflict(
                 "INVALID_DATE_RANGE",

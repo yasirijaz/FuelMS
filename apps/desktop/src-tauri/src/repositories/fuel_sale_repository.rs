@@ -3,11 +3,11 @@ use uuid::Uuid;
 
 use crate::db::connection::DbConnection;
 use crate::dto::fuel_sale::{
-    CommandErrorDto, FuelSaleDto, FuelSaleListQueryDto, PostFuelSaleInputDto,
-    ProductStockDto, RecordFuelSaleInputDto, VoidFuelSaleInputDto,
+    CommandErrorDto, FuelSaleDto, FuelSaleListQueryDto, PostFuelSaleInputDto, ProductStockDto,
+    RecordFuelSaleInputDto, VoidFuelSaleInputDto,
 };
-use crate::services::fifo::{allocate_fifo, FifoBatch, FifoError};
 use crate::repositories::person_ledger_repository::PersonLedgerRepository;
+use crate::services::fifo::{allocate_fifo, FifoBatch, FifoError};
 
 const VALID_PRODUCT_CODES: [&str; 3] = ["petrol", "diesel", "hobc"];
 const VALID_PAYMENT_METHODS: [&str; 3] = ["cash", "credit", "card"];
@@ -61,7 +61,8 @@ impl<'a> FuelSaleRepository<'a> {
         })
     }
 
-    const SELECT_SQL: &'static str = "SELECT fs.id, fs.sale_date, fs.product_id, p.code AS product_code,
+    const SELECT_SQL: &'static str =
+        "SELECT fs.id, fs.sale_date, fs.product_id, p.code AS product_code,
              fs.customer_partner_id, bp.display_name AS customer_name,
              fs.quantity_milli_litres, fs.unit_price_minor_per_litre, fs.fuel_price_record_id,
              fs.total_revenue_minor, fs.total_cogs_minor, fs.payment_method, fs.reference, fs.notes,
@@ -74,7 +75,11 @@ impl<'a> FuelSaleRepository<'a> {
         let conn = self.db.conn();
         let mut sql = format!("{} WHERE 1=1", Self::SELECT_SQL);
 
-        if query.status.as_ref().is_some_and(|s| s != "all" && !s.is_empty()) {
+        if query
+            .status
+            .as_ref()
+            .is_some_and(|s| s != "all" && !s.is_empty())
+        {
             sql.push_str(" AND fs.status = ?");
         }
 
@@ -93,7 +98,11 @@ impl<'a> FuelSaleRepository<'a> {
             sql.push_str(" AND date(fs.sale_date) >= date(?)");
         }
 
-        if query.to_date_iso.as_ref().is_some_and(|s| !s.trim().is_empty()) {
+        if query
+            .to_date_iso
+            .as_ref()
+            .is_some_and(|s| !s.trim().is_empty())
+        {
             sql.push_str(" AND date(fs.sale_date) <= date(?)");
         }
 
@@ -111,7 +120,11 @@ impl<'a> FuelSaleRepository<'a> {
 
         let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
-        if query.status.as_ref().is_some_and(|s| s != "all" && !s.is_empty()) {
+        if query
+            .status
+            .as_ref()
+            .is_some_and(|s| s != "all" && !s.is_empty())
+        {
             params.push(Box::new(query.status.clone()));
         }
 
@@ -128,7 +141,11 @@ impl<'a> FuelSaleRepository<'a> {
             params.push(Box::new(query.from_date_iso.clone()));
         }
 
-        if query.to_date_iso.as_ref().is_some_and(|s| !s.trim().is_empty()) {
+        if query
+            .to_date_iso
+            .as_ref()
+            .is_some_and(|s| !s.trim().is_empty())
+        {
             params.push(Box::new(query.to_date_iso.clone()));
         }
 
@@ -146,13 +163,17 @@ impl<'a> FuelSaleRepository<'a> {
     pub fn find_by_id(&self, id: &str) -> Result<FuelSaleDto, CommandErrorDto> {
         let conn = self.db.conn();
         let sql = format!("{} WHERE fs.id = ?1", Self::SELECT_SQL);
-        conn.query_row(&sql, params![id], Self::map_row).map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => not_found("FuelSale", id),
-            _ => db_error("DB_QUERY_FAILED", &e.to_string()),
-        })
+        conn.query_row(&sql, params![id], Self::map_row)
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => not_found("FuelSale", id),
+                _ => db_error("DB_QUERY_FAILED", &e.to_string()),
+            })
     }
 
-    pub fn available_stock_by_product(&self, product_code: &str) -> Result<ProductStockDto, CommandErrorDto> {
+    pub fn available_stock_by_product(
+        &self,
+        product_code: &str,
+    ) -> Result<ProductStockDto, CommandErrorDto> {
         let product_id = self.product_id_for_code(product_code)?;
         let conn = self.db.conn();
         let available: i64 = conn
@@ -174,15 +195,27 @@ impl<'a> FuelSaleRepository<'a> {
         (quantity_milli * unit_price_minor) / 1000
     }
 
-    fn validate_record_input(&self, input: &RecordFuelSaleInputDto) -> Result<(String, i64), CommandErrorDto> {
+    fn validate_record_input(
+        &self,
+        input: &RecordFuelSaleInputDto,
+    ) -> Result<(String, i64), CommandErrorDto> {
         if input.quantity_milli_litres <= 0 {
-            return Err(conflict("INVALID_QUANTITY", "Quantity must be greater than zero."));
+            return Err(conflict(
+                "INVALID_QUANTITY",
+                "Quantity must be greater than zero.",
+            ));
         }
         if input.unit_price_minor_per_litre <= 0 {
-            return Err(conflict("INVALID_PRICE", "Selling price must be greater than zero."));
+            return Err(conflict(
+                "INVALID_PRICE",
+                "Selling price must be greater than zero.",
+            ));
         }
         if !VALID_PAYMENT_METHODS.contains(&input.payment_method.as_str()) {
-            return Err(conflict("INVALID_PAYMENT_METHOD", "Invalid payment method."));
+            return Err(conflict(
+                "INVALID_PAYMENT_METHOD",
+                "Invalid payment method.",
+            ));
         }
         if input.payment_method == "credit" && input.customer_partner_id.is_none() {
             return Err(conflict(
@@ -223,9 +256,15 @@ impl<'a> FuelSaleRepository<'a> {
             }
         }
 
-        let total_revenue = Self::compute_revenue(input.quantity_milli_litres, input.unit_price_minor_per_litre);
+        let total_revenue = Self::compute_revenue(
+            input.quantity_milli_litres,
+            input.unit_price_minor_per_litre,
+        );
         if total_revenue <= 0 {
-            return Err(conflict("INVALID_TOTAL", "Sale total must be greater than zero."));
+            return Err(conflict(
+                "INVALID_TOTAL",
+                "Sale total must be greater than zero.",
+            ));
         }
 
         Ok((product_id, total_revenue))
@@ -303,7 +342,11 @@ impl<'a> FuelSaleRepository<'a> {
         Ok(total_cogs)
     }
 
-    fn lock_price_record_tx(tx: &Transaction<'_>, price_record_id: &str, now: &str) -> Result<(), CommandErrorDto> {
+    fn lock_price_record_tx(
+        tx: &Transaction<'_>,
+        price_record_id: &str,
+        now: &str,
+    ) -> Result<(), CommandErrorDto> {
         tx.execute(
             "UPDATE fuel_price_records
              SET is_locked = 1, updated_at = ?2, version = version + 1
@@ -489,9 +532,7 @@ fn map_fifo_error(error: FifoError) -> CommandErrorDto {
     }
 }
 
-fn map_person_ledger_error(
-    error: crate::dto::person_ledger::CommandErrorDto,
-) -> CommandErrorDto {
+fn map_person_ledger_error(error: crate::dto::person_ledger::CommandErrorDto) -> CommandErrorDto {
     CommandErrorDto {
         code: error.code,
         message: error.message,

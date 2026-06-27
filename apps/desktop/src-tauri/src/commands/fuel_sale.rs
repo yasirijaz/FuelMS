@@ -2,8 +2,8 @@ use tauri::State;
 
 use crate::db::AppDatabase;
 use crate::dto::fuel_sale::{
-    CommandResultDto, FuelSaleDto, FuelSaleListQueryDto, PostFuelSaleInputDto,
-    ProductStockDto, RecordFuelSaleInputDto, VoidFuelSaleInputDto,
+    CommandResultDto, FuelSaleDto, FuelSaleListQueryDto, PostFuelSaleInputDto, ProductStockDto,
+    RecordFuelSaleInputDto, VoidFuelSaleInputDto,
 };
 use crate::repositories::fuel_sale_repository::FuelSaleRepository;
 
@@ -42,7 +42,9 @@ pub fn fuel_sale_available_stock(
     db: State<'_, AppDatabase>,
     product_code: String,
 ) -> CommandResultDto<ProductStockDto> {
-    match db.with_connection(|conn| FuelSaleRepository::new(conn).available_stock_by_product(&product_code)) {
+    match db.with_connection(|conn| {
+        FuelSaleRepository::new(conn).available_stock_by_product(&product_code)
+    }) {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {
             ok: false,

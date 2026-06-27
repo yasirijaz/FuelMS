@@ -54,7 +54,11 @@ impl<'a> FuelPriceRepository<'a> {
             "{} WHERE r.product_id = ?1 AND r.status = 'active' LIMIT 1",
             Self::SELECT_FIELDS
         );
-        match self.db.conn().query_row(&sql, params![product_id], Self::map_row) {
+        match self
+            .db
+            .conn()
+            .query_row(&sql, params![product_id], Self::map_row)
+        {
             Ok(row) => Ok(Some(row)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(db_error("DB_QUERY_FAILED", &e.to_string())),
@@ -80,7 +84,10 @@ impl<'a> FuelPriceRepository<'a> {
         self.query_list(&sql, params![product_id])
     }
 
-    pub fn list_due_scheduled(&self, as_of_iso: &str) -> Result<Vec<FuelPriceRecordDto>, CommandErrorDto> {
+    pub fn list_due_scheduled(
+        &self,
+        as_of_iso: &str,
+    ) -> Result<Vec<FuelPriceRecordDto>, CommandErrorDto> {
         let sql = format!(
             "{} WHERE r.status = 'scheduled' AND r.effective_from <= ?1 ORDER BY r.effective_from ASC",
             Self::SELECT_FIELDS
@@ -235,7 +242,15 @@ impl<'a> FuelPriceRepository<'a> {
                 "INSERT INTO fuel_price_audit_log
                  (id, action, product_id, price_record_id, actor_id, detail_json, occurred_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                params![id, action, product_id, price_record_id, actor_id, detail_json, occurred_at_iso],
+                params![
+                    id,
+                    action,
+                    product_id,
+                    price_record_id,
+                    actor_id,
+                    detail_json,
+                    occurred_at_iso
+                ],
             )
             .map_err(|e| db_error("DB_INSERT_FAILED", &e.to_string()))?;
         Ok(())
@@ -273,10 +288,7 @@ impl<'a> FuelPriceRepository<'a> {
         }
     }
 
-    fn insert_tx(
-        tx: &Transaction<'_>,
-        record: &FuelPriceRecordDto,
-    ) -> Result<(), CommandErrorDto> {
+    fn insert_tx(tx: &Transaction<'_>, record: &FuelPriceRecordDto) -> Result<(), CommandErrorDto> {
         tx.execute(
             "INSERT INTO fuel_price_records
              (id, product_id, batch_id, price_per_litre_minor, effective_from, effective_to,
@@ -376,7 +388,13 @@ mod integration_tests {
         conn
     }
 
-    fn sample_record(id: &str, product_id: &str, minor: i64, effective: &str, status: &str) -> FuelPriceRecordDto {
+    fn sample_record(
+        id: &str,
+        product_id: &str,
+        minor: i64,
+        effective: &str,
+        status: &str,
+    ) -> FuelPriceRecordDto {
         FuelPriceRecordDto {
             id: id.to_string(),
             product_id: product_id.to_string(),
@@ -400,20 +418,38 @@ mod integration_tests {
         let db = setup();
         let repo = FuelPriceRepository::new(&db);
 
-        let first = sample_record("rec-1", "fuel-product-diesel", 28000, "2026-01-01T00:00:00.000Z", "active");
+        let first = sample_record(
+            "rec-1",
+            "fuel-product-diesel",
+            28000,
+            "2026-01-01T00:00:00.000Z",
+            "active",
+        );
         repo.save_new(&first).unwrap();
 
-        let second = sample_record("rec-2", "fuel-product-diesel", 29500, "2026-06-26T10:00:00.000Z", "active");
+        let second = sample_record(
+            "rec-2",
+            "fuel-product-diesel",
+            29500,
+            "2026-06-26T10:00:00.000Z",
+            "active",
+        );
         let result = repo.save_new(&second).unwrap();
 
         assert!(result.superseded_record.is_some());
-        assert_eq!(result.superseded_record.as_ref().unwrap().status, "superseded");
+        assert_eq!(
+            result.superseded_record.as_ref().unwrap().status,
+            "superseded"
+        );
 
         let superseded = repo.find_by_id("rec-1").unwrap();
         assert_eq!(superseded.status, "superseded");
         assert_eq!(superseded.superseded_by_id.as_deref(), Some("rec-2"));
 
-        let active = repo.find_active_by_product("fuel-product-diesel").unwrap().unwrap();
+        let active = repo
+            .find_active_by_product("fuel-product-diesel")
+            .unwrap()
+            .unwrap();
         assert_eq!(active.id, "rec-2");
         assert_eq!(active.price_per_litre_minor, 29500);
     }
@@ -423,10 +459,22 @@ mod integration_tests {
         let db = setup();
         let repo = FuelPriceRepository::new(&db);
 
-        repo.save_new(&sample_record("rec-1", "fuel-product-petrol", 26500, "2026-01-01T00:00:00.000Z", "active"))
-            .unwrap();
-        repo.save_new(&sample_record("rec-2", "fuel-product-petrol", 25800, "2026-06-01T00:00:00.000Z", "active"))
-            .unwrap();
+        repo.save_new(&sample_record(
+            "rec-1",
+            "fuel-product-petrol",
+            26500,
+            "2026-01-01T00:00:00.000Z",
+            "active",
+        ))
+        .unwrap();
+        repo.save_new(&sample_record(
+            "rec-2",
+            "fuel-product-petrol",
+            25800,
+            "2026-06-01T00:00:00.000Z",
+            "active",
+        ))
+        .unwrap();
 
         let history = repo
             .list_history(Some("fuel-product-petrol"), None, None, 50)

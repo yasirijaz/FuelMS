@@ -1,7 +1,9 @@
 use rusqlite::{params, Row};
 
 use crate::db::connection::DbConnection;
-use crate::dto::accounting::{AccountingPeriodDto, AccountingPeriodVersionInputDto, CommandErrorDto};
+use crate::dto::accounting::{
+    AccountingPeriodDto, AccountingPeriodVersionInputDto, CommandErrorDto,
+};
 
 pub struct AccountingPeriodRepository<'a> {
     db: &'a DbConnection,

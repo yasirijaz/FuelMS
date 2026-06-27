@@ -13,7 +13,9 @@ pub fn cash_account_list(
     db: State<'_, AppDatabase>,
     active_only: Option<bool>,
 ) -> CommandResultDto<Vec<CashAccountDto>> {
-    match db.with_connection(|conn| CashRepository::new(conn).list_accounts(active_only.unwrap_or(true))) {
+    match db.with_connection(|conn| {
+        CashRepository::new(conn).list_accounts(active_only.unwrap_or(true))
+    }) {
         Ok(rows) => CommandResultDto::ok(rows),
         Err(e) => CommandResultDto {
             ok: false,

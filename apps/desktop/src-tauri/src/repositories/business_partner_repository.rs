@@ -3,9 +3,9 @@ use uuid::Uuid;
 
 use crate::db::connection::DbConnection;
 use crate::dto::business_partner::{
-    AssignPartnerRoleInputDto, BusinessPartnerDto, BusinessPartnerListQueryDto,
-    CommandErrorDto, CreateBusinessPartnerInputDto, PartnerVersionInputDto,
-    RemovePartnerRoleInputDto, UpdateBusinessPartnerInputDto,
+    AssignPartnerRoleInputDto, BusinessPartnerDto, BusinessPartnerListQueryDto, CommandErrorDto,
+    CreateBusinessPartnerInputDto, PartnerVersionInputDto, RemovePartnerRoleInputDto,
+    UpdateBusinessPartnerInputDto,
 };
 
 const VALID_ROLES: [&str; 5] = ["customer", "supplier", "employee", "owner", "other"];
@@ -62,12 +62,18 @@ impl<'a> BusinessPartnerRepository<'a> {
         ))
     }
 
-    fn attach_roles(&self, mut partner: BusinessPartnerDto) -> Result<BusinessPartnerDto, CommandErrorDto> {
+    fn attach_roles(
+        &self,
+        mut partner: BusinessPartnerDto,
+    ) -> Result<BusinessPartnerDto, CommandErrorDto> {
         partner.roles = self.load_roles(&partner.id)?;
         Ok(partner)
     }
 
-    pub fn list(&self, query: &BusinessPartnerListQueryDto) -> Result<Vec<BusinessPartnerDto>, CommandErrorDto> {
+    pub fn list(
+        &self,
+        query: &BusinessPartnerListQueryDto,
+    ) -> Result<Vec<BusinessPartnerDto>, CommandErrorDto> {
         let conn = self.db.conn();
         let mut sql = String::from(
             "SELECT DISTINCT bp.id, bp.display_name, bp.legal_name, bp.phone, bp.email, bp.tax_id,
@@ -85,7 +91,8 @@ impl<'a> BusinessPartnerRepository<'a> {
         if query.search.as_ref().is_some_and(|s| !s.trim().is_empty()) {
             conditions.push(
                 "(LOWER(bp.display_name) LIKE ? OR LOWER(COALESCE(bp.phone, '')) LIKE ?
-                  OR LOWER(COALESCE(bp.tax_id, '')) LIKE ?)".to_string(),
+                  OR LOWER(COALESCE(bp.tax_id, '')) LIKE ?)"
+                    .to_string(),
             );
         }
 
@@ -111,13 +118,24 @@ impl<'a> BusinessPartnerRepository<'a> {
             && query.search.as_ref().is_some_and(|s| !s.trim().is_empty())
         {
             stmt.query_map(
-                params![query.role_code.as_ref().unwrap(), search_pattern, search_pattern, search_pattern],
+                params![
+                    query.role_code.as_ref().unwrap(),
+                    search_pattern,
+                    search_pattern,
+                    search_pattern
+                ],
                 Self::map_partner_row,
             )
         } else if query.role_code.is_some() {
-            stmt.query_map(params![query.role_code.as_ref().unwrap()], Self::map_partner_row)
+            stmt.query_map(
+                params![query.role_code.as_ref().unwrap()],
+                Self::map_partner_row,
+            )
         } else if query.search.as_ref().is_some_and(|s| !s.trim().is_empty()) {
-            stmt.query_map(params![search_pattern, search_pattern, search_pattern], Self::map_partner_row)
+            stmt.query_map(
+                params![search_pattern, search_pattern, search_pattern],
+                Self::map_partner_row,
+            )
         } else {
             stmt.query_map([], Self::map_partner_row)
         }
@@ -125,7 +143,10 @@ impl<'a> BusinessPartnerRepository<'a> {
         .filter_map(|row| row.ok().map(|(_, partner)| partner))
         .collect();
 
-        partials.into_iter().map(|partner| self.attach_roles(partner)).collect()
+        partials
+            .into_iter()
+            .map(|partner| self.attach_roles(partner))
+            .collect()
     }
 
     pub fn find_by_id(&self, id: &str) -> Result<BusinessPartnerDto, CommandErrorDto> {
@@ -147,10 +168,16 @@ impl<'a> BusinessPartnerRepository<'a> {
         self.attach_roles(partner)
     }
 
-    pub fn create(&self, input: &CreateBusinessPartnerInputDto) -> Result<BusinessPartnerDto, CommandErrorDto> {
+    pub fn create(
+        &self,
+        input: &CreateBusinessPartnerInputDto,
+    ) -> Result<BusinessPartnerDto, CommandErrorDto> {
         let display_name = input.display_name.trim();
         if display_name.is_empty() {
-            return Err(conflict("PARTNER_NAME_REQUIRED", "Display name is required."));
+            return Err(conflict(
+                "PARTNER_NAME_REQUIRED",
+                "Display name is required.",
+            ));
         }
 
         if input.roles.is_empty() {
@@ -209,10 +236,16 @@ impl<'a> BusinessPartnerRepository<'a> {
         self.find_by_id(&id)
     }
 
-    pub fn update(&self, input: &UpdateBusinessPartnerInputDto) -> Result<BusinessPartnerDto, CommandErrorDto> {
+    pub fn update(
+        &self,
+        input: &UpdateBusinessPartnerInputDto,
+    ) -> Result<BusinessPartnerDto, CommandErrorDto> {
         let display_name = input.display_name.trim();
         if display_name.is_empty() {
-            return Err(conflict("PARTNER_NAME_REQUIRED", "Display name is required."));
+            return Err(conflict(
+                "PARTNER_NAME_REQUIRED",
+                "Display name is required.",
+            ));
         }
 
         let conn = self.db.conn();
@@ -249,7 +282,11 @@ impl<'a> BusinessPartnerRepository<'a> {
         self.find_by_id(&input.id)
     }
 
-    pub fn set_active(&self, input: &PartnerVersionInputDto, active: bool) -> Result<BusinessPartnerDto, CommandErrorDto> {
+    pub fn set_active(
+        &self,
+        input: &PartnerVersionInputDto,
+        active: bool,
+    ) -> Result<BusinessPartnerDto, CommandErrorDto> {
         if active {
             let partner = self.find_by_id(&input.partner_id)?;
             if partner.roles.is_empty() {
@@ -283,7 +320,10 @@ impl<'a> BusinessPartnerRepository<'a> {
         self.find_by_id(&input.partner_id)
     }
 
-    pub fn assign_role(&self, input: &AssignPartnerRoleInputDto) -> Result<BusinessPartnerDto, CommandErrorDto> {
+    pub fn assign_role(
+        &self,
+        input: &AssignPartnerRoleInputDto,
+    ) -> Result<BusinessPartnerDto, CommandErrorDto> {
         if !Self::is_valid_role(&input.role_code) {
             return Err(conflict("INVALID_ROLE", "Invalid role code."));
         }
@@ -334,7 +374,10 @@ impl<'a> BusinessPartnerRepository<'a> {
         self.find_by_id(&input.partner_id)
     }
 
-    pub fn remove_role(&self, input: &RemovePartnerRoleInputDto) -> Result<BusinessPartnerDto, CommandErrorDto> {
+    pub fn remove_role(
+        &self,
+        input: &RemovePartnerRoleInputDto,
+    ) -> Result<BusinessPartnerDto, CommandErrorDto> {
         let partner = self.find_by_id(&input.partner_id)?;
         if partner.is_active && partner.roles.len() <= 1 {
             return Err(conflict(

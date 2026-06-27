@@ -58,7 +58,8 @@ pub fn person_ledger_record_repay_borrowed(
     db: State<'_, AppDatabase>,
     input: RecordPersonRepayBorrowedInputDto,
 ) -> CommandResultDto<PersonLedgerEntryDto> {
-    match db.with_connection(|conn| PersonLedgerRepository::new(conn).record_repay_borrowed(&input)) {
+    match db.with_connection(|conn| PersonLedgerRepository::new(conn).record_repay_borrowed(&input))
+    {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {
             ok: false,

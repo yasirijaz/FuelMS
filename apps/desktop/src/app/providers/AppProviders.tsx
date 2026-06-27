@@ -6,6 +6,7 @@ import { createQueryClient } from '@shared/lib/queryClient'
 import { logger } from '@shared/lib/logger'
 import { ThemeProvider } from '@app/theme/ThemeProvider'
 import { WorkspaceBootstrap } from '@features/Organization/presentation/WorkspaceBootstrap'
+import { AppUpdaterBootstrap } from '@features/Settings/presentation/AppUpdaterBootstrap'
 import type { ErrorInfo } from 'react'
 
 function handleRootError(error: Error, info: ErrorInfo): void {
@@ -33,7 +34,10 @@ export function AppProviders({ children }: PropsWithChildren) {
       <UiProvider>
         <QueryClientProvider client={queryClient}>
           <ErrorBoundary name="AppRoot" onError={handleRootError}>
-            <WorkspaceBootstrap>{children}</WorkspaceBootstrap>
+            <WorkspaceBootstrap>
+              <AppUpdaterBootstrap />
+              {children}
+            </WorkspaceBootstrap>
           </ErrorBoundary>
         </QueryClientProvider>
       </UiProvider>

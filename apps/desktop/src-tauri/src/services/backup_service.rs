@@ -39,19 +39,18 @@ impl BackupService {
         backups_dir: &Path,
         input: &CreateBackupInputDto,
     ) -> Result<BackupManifestDto, CommandErrorDto> {
-        let backup_id = format!(
-            "backup-{}",
-            chrono::Utc::now().format("%Y-%m-%dT%H-%M-%SZ")
-        );
+        let backup_id = format!("backup-{}", chrono::Utc::now().format("%Y-%m-%dT%H-%M-%SZ"));
         let backup_id_for_audit = backup_id.clone();
         let tmp_dir = backups_dir.join(format!("{backup_id}{BACKUP_SUFFIX}.tmp"));
         let final_dir = backups_dir.join(format!("{backup_id}{BACKUP_SUFFIX}"));
         let db_snapshot = tmp_dir.join("fuelms.sqlite3");
 
         if tmp_dir.exists() {
-            fs::remove_dir_all(&tmp_dir).map_err(|e| io_error("Failed to reset temp backup dir", e))?;
+            fs::remove_dir_all(&tmp_dir)
+                .map_err(|e| io_error("Failed to reset temp backup dir", e))?;
         }
-        fs::create_dir_all(&tmp_dir).map_err(|e| io_error("Failed to create temp backup dir", e))?;
+        fs::create_dir_all(&tmp_dir)
+            .map_err(|e| io_error("Failed to create temp backup dir", e))?;
 
         let result = (|| {
             db.with_connection(|conn| {
@@ -88,7 +87,10 @@ impl BackupService {
             fs::write(&manifest_path, json).map_err(|e| io_error("Failed to write manifest", e))?;
 
             if final_dir.exists() {
-                return Err(conflict("BACKUP_EXISTS", "A backup with this id already exists."));
+                return Err(conflict(
+                    "BACKUP_EXISTS",
+                    "A backup with this id already exists.",
+                ));
             }
             fs::rename(&tmp_dir, &final_dir)
                 .map_err(|e| io_error("Failed to finalize backup directory", e))?;
@@ -143,7 +145,9 @@ impl BackupService {
         }
 
         let mut manifests = Vec::new();
-        for entry in fs::read_dir(backups_dir).map_err(|e| io_error("Failed to read backups dir", e))? {
+        for entry in
+            fs::read_dir(backups_dir).map_err(|e| io_error("Failed to read backups dir", e))?
+        {
             let entry = entry.map_err(|e| io_error("Failed to read backup entry", e))?;
             let path = entry.path();
             if !path.is_dir() {
@@ -165,7 +169,10 @@ impl BackupService {
         Ok(manifests)
     }
 
-    pub fn verify_backup(backups_dir: &Path, backup_id: &str) -> Result<BackupVerifyResultDto, CommandErrorDto> {
+    pub fn verify_backup(
+        backups_dir: &Path,
+        backup_id: &str,
+    ) -> Result<BackupVerifyResultDto, CommandErrorDto> {
         let dir = Self::backup_dir(backups_dir, backup_id)?;
         let manifest = Self::read_manifest_file(&dir)?;
         let db_path = dir.join("fuelms.sqlite3");
@@ -198,7 +205,8 @@ impl BackupService {
                 is_valid: false,
                 schema_version: manifest.schema_version,
                 database_sha256: actual_hash,
-                message: "Backup schema version is newer than this application supports.".to_string(),
+                message: "Backup schema version is newer than this application supports."
+                    .to_string(),
             });
         }
 
@@ -289,7 +297,10 @@ impl BackupService {
         })
     }
 
-    pub fn list_audit_events(db: &AppDatabase, limit: i64) -> Result<Vec<BackupAuditEventDto>, CommandErrorDto> {
+    pub fn list_audit_events(
+        db: &AppDatabase,
+        limit: i64,
+    ) -> Result<Vec<BackupAuditEventDto>, CommandErrorDto> {
         db.with_connection(|conn| {
             let conn = conn.conn();
             let mut stmt = conn
@@ -387,7 +398,8 @@ impl BackupService {
     }
 
     fn sha256_file(path: &Path) -> Result<String, CommandErrorDto> {
-        let mut file = fs::File::open(path).map_err(|e| io_error("Failed to open file for hash", e))?;
+        let mut file =
+            fs::File::open(path).map_err(|e| io_error("Failed to open file for hash", e))?;
         let mut hasher = Sha256::new();
         let mut buffer = [0_u8; 8192];
         loop {

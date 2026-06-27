@@ -56,7 +56,10 @@ impl<'a> JournalRepository<'a> {
         })
     }
 
-    pub fn list(&self, query: &JournalListQueryDto) -> Result<Vec<JournalEntryDto>, CommandErrorDto> {
+    pub fn list(
+        &self,
+        query: &JournalListQueryDto,
+    ) -> Result<Vec<JournalEntryDto>, CommandErrorDto> {
         let conn = self.db.conn();
         let mut sql = format!("{} WHERE 1=1", Self::HEADER_SELECT);
         let mut bind_values: Vec<rusqlite::types::Value> = Vec::new();
@@ -94,8 +97,10 @@ impl<'a> JournalRepository<'a> {
             .prepare(&sql)
             .map_err(|e| db_error("DB_PREPARE_FAILED", &e.to_string()))?;
 
-        let param_refs: Vec<&dyn rusqlite::ToSql> =
-            bind_values.iter().map(|v| v as &dyn rusqlite::ToSql).collect();
+        let param_refs: Vec<&dyn rusqlite::ToSql> = bind_values
+            .iter()
+            .map(|v| v as &dyn rusqlite::ToSql)
+            .collect();
 
         let rows = stmt
             .query_map(param_refs.as_slice(), Self::map_header_row)
@@ -376,7 +381,8 @@ mod tests {
     fn balanced_journal_posts_and_updates_account_balance() {
         let db = test_db();
         let journal_repo = JournalRepository::new(&db);
-        let account_repo = crate::repositories::ledger_account_repository::LedgerAccountRepository::new(&db);
+        let account_repo =
+            crate::repositories::ledger_account_repository::LedgerAccountRepository::new(&db);
 
         journal_repo.post(&sample_post_input(50_000)).unwrap();
 

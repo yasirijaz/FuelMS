@@ -74,7 +74,10 @@ impl<'a> CashRepository<'a> {
                 Self::ACCOUNT_SELECT
             )
         } else {
-            format!("{} ORDER BY display_order ASC, name ASC", Self::ACCOUNT_SELECT)
+            format!(
+                "{} ORDER BY display_order ASC, name ASC",
+                Self::ACCOUNT_SELECT
+            )
         };
 
         let mut stmt = conn
@@ -106,10 +109,16 @@ impl<'a> CashRepository<'a> {
     ) -> Result<CashAccountDto, CommandErrorDto> {
         let name = input.name.trim();
         if name.is_empty() {
-            return Err(conflict("ACCOUNT_NAME_REQUIRED", "Account name is required."));
+            return Err(conflict(
+                "ACCOUNT_NAME_REQUIRED",
+                "Account name is required.",
+            ));
         }
         if !VALID_ACCOUNT_TYPES.contains(&input.account_type.as_str()) {
-            return Err(conflict("INVALID_ACCOUNT_TYPE", "Invalid cash account type."));
+            return Err(conflict(
+                "INVALID_ACCOUNT_TYPE",
+                "Invalid cash account type.",
+            ));
         }
 
         let opening = input.opening_balance_minor.unwrap_or(0);
@@ -150,7 +159,10 @@ impl<'a> CashRepository<'a> {
     ) -> Result<CashAccountDto, CommandErrorDto> {
         let name = input.name.trim();
         if name.is_empty() {
-            return Err(conflict("ACCOUNT_NAME_REQUIRED", "Account name is required."));
+            return Err(conflict(
+                "ACCOUNT_NAME_REQUIRED",
+                "Account name is required.",
+            ));
         }
 
         let conn = self.db.conn();
@@ -339,10 +351,11 @@ impl<'a> CashRepository<'a> {
     fn find_transfer_by_id(&self, id: &str) -> Result<CashTransferDto, CommandErrorDto> {
         let conn = self.db.conn();
         let sql = format!("{} WHERE t.id = ?1", Self::TRANSFER_SELECT);
-        conn.query_row(&sql, params![id], Self::map_transfer_row).map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => not_found("CashTransfer", id),
-            _ => db_error("DB_QUERY_FAILED", &e.to_string()),
-        })
+        conn.query_row(&sql, params![id], Self::map_transfer_row)
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => not_found("CashTransfer", id),
+                _ => db_error("DB_QUERY_FAILED", &e.to_string()),
+            })
     }
 }
 

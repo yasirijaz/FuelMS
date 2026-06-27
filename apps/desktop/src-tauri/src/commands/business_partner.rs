@@ -2,9 +2,9 @@ use tauri::State;
 
 use crate::db::AppDatabase;
 use crate::dto::business_partner::{
-    AssignPartnerRoleInputDto, BusinessPartnerDto, BusinessPartnerListQueryDto,
-    CommandResultDto, CreateBusinessPartnerInputDto, PartnerVersionInputDto,
-    RemovePartnerRoleInputDto, UpdateBusinessPartnerInputDto,
+    AssignPartnerRoleInputDto, BusinessPartnerDto, BusinessPartnerListQueryDto, CommandResultDto,
+    CreateBusinessPartnerInputDto, PartnerVersionInputDto, RemovePartnerRoleInputDto,
+    UpdateBusinessPartnerInputDto,
 };
 use crate::repositories::business_partner_repository::BusinessPartnerRepository;
 
@@ -88,7 +88,8 @@ pub fn business_partner_deactivate(
     db: State<'_, AppDatabase>,
     input: PartnerVersionInputDto,
 ) -> CommandResultDto<BusinessPartnerDto> {
-    match db.with_connection(|conn| BusinessPartnerRepository::new(conn).set_active(&input, false)) {
+    match db.with_connection(|conn| BusinessPartnerRepository::new(conn).set_active(&input, false))
+    {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {
             ok: false,

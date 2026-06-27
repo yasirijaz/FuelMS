@@ -8,8 +8,12 @@ use crate::dto::tank::{
 use crate::repositories::tank_repository::TankRepository;
 
 #[tauri::command]
-pub fn tank_list(db: State<'_, AppDatabase>, active_only: Option<bool>) -> CommandResultDto<Vec<FuelTankDto>> {
-    match db.with_connection(|conn| TankRepository::new(conn).list_all(active_only.unwrap_or(true))) {
+pub fn tank_list(
+    db: State<'_, AppDatabase>,
+    active_only: Option<bool>,
+) -> CommandResultDto<Vec<FuelTankDto>> {
+    match db.with_connection(|conn| TankRepository::new(conn).list_all(active_only.unwrap_or(true)))
+    {
         Ok(rows) => CommandResultDto::ok(rows),
         Err(e) => CommandResultDto {
             ok: false,
@@ -20,7 +24,10 @@ pub fn tank_list(db: State<'_, AppDatabase>, active_only: Option<bool>) -> Comma
 }
 
 #[tauri::command]
-pub fn tank_get_by_id(db: State<'_, AppDatabase>, tank_id: String) -> CommandResultDto<FuelTankDto> {
+pub fn tank_get_by_id(
+    db: State<'_, AppDatabase>,
+    tank_id: String,
+) -> CommandResultDto<FuelTankDto> {
     match db.with_connection(|conn| TankRepository::new(conn).find_by_id(&tank_id)) {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {
@@ -112,7 +119,9 @@ pub fn tank_list_dips(
     tank_id: String,
     limit: Option<i64>,
 ) -> CommandResultDto<Vec<TankDipReadingDto>> {
-    match db.with_connection(|conn| TankRepository::new(conn).list_dips(&tank_id, limit.unwrap_or(20))) {
+    match db
+        .with_connection(|conn| TankRepository::new(conn).list_dips(&tank_id, limit.unwrap_or(20)))
+    {
         Ok(rows) => CommandResultDto::ok(rows),
         Err(e) => CommandResultDto {
             ok: false,

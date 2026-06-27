@@ -3,8 +3,8 @@ use uuid::Uuid;
 
 use crate::db::connection::DbConnection;
 use crate::dto::tank::{
-    CommandErrorDto, CreateFuelTankInputDto, FuelTankDto, RecordTankDipInputDto,
-    TankDipReadingDto, TankVersionInputDto, UpdateFuelTankInputDto,
+    CommandErrorDto, CreateFuelTankInputDto, FuelTankDto, RecordTankDipInputDto, TankDipReadingDto,
+    TankVersionInputDto, UpdateFuelTankInputDto,
 };
 const VALID_PRODUCT_CODES: [&str; 3] = ["petrol", "diesel", "hobc"];
 
@@ -44,7 +44,10 @@ impl<'a> TankRepository<'a> {
         .map_err(|e| db_error("DB_QUERY_FAILED", &e.to_string()))
     }
 
-    fn last_dip_for_tank(&self, tank_id: &str) -> Result<(Option<i64>, Option<String>), CommandErrorDto> {
+    fn last_dip_for_tank(
+        &self,
+        tank_id: &str,
+    ) -> Result<(Option<i64>, Option<String>), CommandErrorDto> {
         let conn = self.db.conn();
         match conn.query_row(
             "SELECT quantity_milli_litres, reading_at FROM tank_dip_readings
@@ -113,9 +116,15 @@ impl<'a> TankRepository<'a> {
     pub fn list_all(&self, active_only: bool) -> Result<Vec<FuelTankDto>, CommandErrorDto> {
         let conn = self.db.conn();
         let sql = if active_only {
-            format!("{} WHERE t.is_active = 1 ORDER BY t.display_order ASC, t.name ASC", Self::SELECT_SQL)
+            format!(
+                "{} WHERE t.is_active = 1 ORDER BY t.display_order ASC, t.name ASC",
+                Self::SELECT_SQL
+            )
         } else {
-            format!("{} ORDER BY t.display_order ASC, t.name ASC", Self::SELECT_SQL)
+            format!(
+                "{} ORDER BY t.display_order ASC, t.name ASC",
+                Self::SELECT_SQL
+            )
         };
 
         let mut stmt = conn
@@ -128,7 +137,10 @@ impl<'a> TankRepository<'a> {
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| db_error("DB_ROW_MAP_FAILED", &e.to_string()))?;
 
-        bases.into_iter().map(|base| self.enrich_base(base)).collect()
+        bases
+            .into_iter()
+            .map(|base| self.enrich_base(base))
+            .collect()
     }
 
     pub fn find_by_id(&self, id: &str) -> Result<FuelTankDto, CommandErrorDto> {
@@ -149,7 +161,10 @@ impl<'a> TankRepository<'a> {
             return Err(conflict("TANK_NAME_REQUIRED", "Tank name is required."));
         }
         if input.capacity_milli_litres <= 0 {
-            return Err(conflict("INVALID_CAPACITY", "Capacity must be greater than zero."));
+            return Err(conflict(
+                "INVALID_CAPACITY",
+                "Capacity must be greater than zero.",
+            ));
         }
 
         let product_id = self.product_id_for_code(&input.product_code)?;
@@ -183,7 +198,10 @@ impl<'a> TankRepository<'a> {
             return Err(conflict("TANK_NAME_REQUIRED", "Tank name is required."));
         }
         if input.capacity_milli_litres <= 0 {
-            return Err(conflict("INVALID_CAPACITY", "Capacity must be greater than zero."));
+            return Err(conflict(
+                "INVALID_CAPACITY",
+                "Capacity must be greater than zero.",
+            ));
         }
 
         let conn = self.db.conn();
@@ -217,7 +235,11 @@ impl<'a> TankRepository<'a> {
         self.find_by_id(&input.id)
     }
 
-    pub fn set_active(&self, input: &TankVersionInputDto, active: bool) -> Result<FuelTankDto, CommandErrorDto> {
+    pub fn set_active(
+        &self,
+        input: &TankVersionInputDto,
+        active: bool,
+    ) -> Result<FuelTankDto, CommandErrorDto> {
         let conn = self.db.conn();
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
         let flag: i64 = if active { 1 } else { 0 };
@@ -241,7 +263,10 @@ impl<'a> TankRepository<'a> {
         self.find_by_id(&input.tank_id)
     }
 
-    pub fn record_dip(&self, input: &RecordTankDipInputDto) -> Result<TankDipReadingDto, CommandErrorDto> {
+    pub fn record_dip(
+        &self,
+        input: &RecordTankDipInputDto,
+    ) -> Result<TankDipReadingDto, CommandErrorDto> {
         if input.quantity_milli_litres < 0 {
             return Err(conflict("INVALID_DIP", "Dip quantity cannot be negative."));
         }
@@ -277,7 +302,11 @@ impl<'a> TankRepository<'a> {
         self.find_dip_by_id(&id)
     }
 
-    pub fn list_dips(&self, tank_id: &str, limit: i64) -> Result<Vec<TankDipReadingDto>, CommandErrorDto> {
+    pub fn list_dips(
+        &self,
+        tank_id: &str,
+        limit: i64,
+    ) -> Result<Vec<TankDipReadingDto>, CommandErrorDto> {
         let _ = self.find_by_id(tank_id)?;
         let conn = self.db.conn();
         let limit = limit.clamp(1, 200);

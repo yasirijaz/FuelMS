@@ -77,10 +77,11 @@ impl<'a> OrganizationRepository<'a> {
             "SELECT {} FROM organizations WHERE id = ?1",
             Self::SELECT_COLUMNS
         );
-        conn.query_row(&sql, params![id], Self::map_row).map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => not_found("Organization", id),
-            _ => db_error("DB_QUERY_FAILED", &e.to_string()),
-        })
+        conn.query_row(&sql, params![id], Self::map_row)
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => not_found("Organization", id),
+                _ => db_error("DB_QUERY_FAILED", &e.to_string()),
+            })
     }
 
     pub fn exists_active_by_name_excluding(
@@ -108,7 +109,10 @@ impl<'a> OrganizationRepository<'a> {
         Ok(count > 0)
     }
 
-    pub fn insert(&self, input: &CreateOrganizationInputDto) -> Result<OrganizationDto, CommandErrorDto> {
+    pub fn insert(
+        &self,
+        input: &CreateOrganizationInputDto,
+    ) -> Result<OrganizationDto, CommandErrorDto> {
         let conn = self.db.conn();
         let id = format!("org-{}", Uuid::new_v4());
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
@@ -133,12 +137,16 @@ impl<'a> OrganizationRepository<'a> {
         self.find_by_id(&id)
     }
 
-    pub fn update(&self, input: &UpdateOrganizationInputDto) -> Result<OrganizationDto, CommandErrorDto> {
+    pub fn update(
+        &self,
+        input: &UpdateOrganizationInputDto,
+    ) -> Result<OrganizationDto, CommandErrorDto> {
         let conn = self.db.conn();
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
 
-        let updated = conn.execute(
-            "UPDATE organizations
+        let updated = conn
+            .execute(
+                "UPDATE organizations
              SET name = ?2,
                  legal_name = ?3,
                  address = ?4,
@@ -148,19 +156,19 @@ impl<'a> OrganizationRepository<'a> {
                  updated_at = ?8,
                  version = version + 1
              WHERE id = ?1 AND version = ?9 AND status = 'active'",
-            params![
-                input.id,
-                input.name.trim(),
-                input.legal_name.as_deref().map(str::trim),
-                input.address.as_deref().map(str::trim),
-                input.city.as_deref().map(str::trim),
-                input.phone.as_deref().map(str::trim),
-                input.tax_id.as_deref().map(str::trim),
-                now,
-                input.version,
-            ],
-        )
-        .map_err(|e| db_error("DB_UPDATE_FAILED", &e.to_string()))?;
+                params![
+                    input.id,
+                    input.name.trim(),
+                    input.legal_name.as_deref().map(str::trim),
+                    input.address.as_deref().map(str::trim),
+                    input.city.as_deref().map(str::trim),
+                    input.phone.as_deref().map(str::trim),
+                    input.tax_id.as_deref().map(str::trim),
+                    now,
+                    input.version,
+                ],
+            )
+            .map_err(|e| db_error("DB_UPDATE_FAILED", &e.to_string()))?;
 
         if updated == 0 {
             let existing = self.find_by_id(&input.id).ok();
@@ -183,13 +191,14 @@ impl<'a> OrganizationRepository<'a> {
         let conn = self.db.conn();
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
 
-        let updated = conn.execute(
-            "UPDATE organizations
+        let updated = conn
+            .execute(
+                "UPDATE organizations
              SET status = 'archived', updated_at = ?2, version = version + 1
              WHERE id = ?1 AND version = ?3 AND status = 'active'",
-            params![id, now, version],
-        )
-        .map_err(|e| db_error("DB_UPDATE_FAILED", &e.to_string()))?;
+                params![id, now, version],
+            )
+            .map_err(|e| db_error("DB_UPDATE_FAILED", &e.to_string()))?;
 
         if updated == 0 {
             let existing = self.find_by_id(id).ok();

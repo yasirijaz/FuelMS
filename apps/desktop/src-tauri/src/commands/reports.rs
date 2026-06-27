@@ -54,9 +54,7 @@ pub fn report_fuel_product_ledger(
 }
 
 #[tauri::command]
-pub fn report_cash_position(
-    db: State<'_, AppDatabase>,
-) -> CommandResultDto<CashPositionReportDto> {
+pub fn report_cash_position(db: State<'_, AppDatabase>) -> CommandResultDto<CashPositionReportDto> {
     match db.with_connection(|conn| ReportsRepository::new(conn).cash_position()) {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {
@@ -82,9 +80,7 @@ pub fn report_person_ledger_summary(
 }
 
 #[tauri::command]
-pub fn report_trial_balance(
-    db: State<'_, AppDatabase>,
-) -> CommandResultDto<TrialBalanceReportDto> {
+pub fn report_trial_balance(db: State<'_, AppDatabase>) -> CommandResultDto<TrialBalanceReportDto> {
     match db.with_connection(|conn| ReportsRepository::new(conn).trial_balance()) {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {

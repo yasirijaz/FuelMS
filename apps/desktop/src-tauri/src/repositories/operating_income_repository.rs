@@ -55,7 +55,11 @@ impl<'a> OperatingIncomeRepository<'a> {
         let mut bind_status = false;
         let mut bind_search = false;
 
-        if query.status.as_ref().is_some_and(|s| s != "all" && !s.is_empty()) {
+        if query
+            .status
+            .as_ref()
+            .is_some_and(|s| s != "all" && !s.is_empty())
+        {
             sql.push_str(" AND i.status = ?");
             bind_status = true;
         }
@@ -79,7 +83,12 @@ impl<'a> OperatingIncomeRepository<'a> {
 
         let rows = match (bind_status, bind_search) {
             (true, true) => stmt.query_map(
-                params![query.status.as_ref().unwrap(), search_pattern, search_pattern, search_pattern],
+                params![
+                    query.status.as_ref().unwrap(),
+                    search_pattern,
+                    search_pattern,
+                    search_pattern
+                ],
                 Self::map_row,
             ),
             (true, false) => stmt.query_map(params![query.status.as_ref().unwrap()], Self::map_row),
@@ -99,10 +108,11 @@ impl<'a> OperatingIncomeRepository<'a> {
     pub fn find_by_id(&self, id: &str) -> Result<OperatingIncomeDto, CommandErrorDto> {
         let conn = self.db.conn();
         let sql = format!("{} WHERE i.id = ?1", Self::SELECT_SQL);
-        conn.query_row(&sql, params![id], Self::map_row).map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => not_found("OperatingIncome", id),
-            _ => db_error("DB_QUERY_FAILED", &e.to_string()),
-        })
+        conn.query_row(&sql, params![id], Self::map_row)
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => not_found("OperatingIncome", id),
+                _ => db_error("DB_QUERY_FAILED", &e.to_string()),
+            })
     }
 
     pub fn record(
@@ -151,7 +161,10 @@ impl<'a> OperatingIncomeRepository<'a> {
         self.find_by_id(&id)
     }
 
-    pub fn void(&self, input: &VoidOperatingIncomeInputDto) -> Result<OperatingIncomeDto, CommandErrorDto> {
+    pub fn void(
+        &self,
+        input: &VoidOperatingIncomeInputDto,
+    ) -> Result<OperatingIncomeDto, CommandErrorDto> {
         let existing = self.find_by_id(&input.income_id)?;
         if existing.status != "posted" {
             return Err(conflict(
@@ -201,15 +214,24 @@ impl<'a> OperatingIncomeRepository<'a> {
         self.find_by_id(&input.income_id)
     }
 
-    fn validate_record_input(&self, input: &RecordOperatingIncomeInputDto) -> Result<(), CommandErrorDto> {
+    fn validate_record_input(
+        &self,
+        input: &RecordOperatingIncomeInputDto,
+    ) -> Result<(), CommandErrorDto> {
         if !VALID_CATEGORIES.contains(&input.category_code.as_str()) {
             return Err(conflict("INVALID_CATEGORY", "Invalid income category."));
         }
         if !VALID_PAYMENT_STATUSES.contains(&input.payment_status.as_str()) {
-            return Err(conflict("INVALID_PAYMENT_STATUS", "Invalid payment status."));
+            return Err(conflict(
+                "INVALID_PAYMENT_STATUS",
+                "Invalid payment status.",
+            ));
         }
         if input.amount_minor <= 0 {
-            return Err(conflict("INVALID_AMOUNT", "Amount must be greater than zero."));
+            return Err(conflict(
+                "INVALID_AMOUNT",
+                "Amount must be greater than zero.",
+            ));
         }
         if input.source_name.trim().is_empty() {
             return Err(conflict("SOURCE_REQUIRED", "Income source is required."));

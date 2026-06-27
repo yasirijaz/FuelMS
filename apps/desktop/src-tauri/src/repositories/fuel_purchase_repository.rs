@@ -58,7 +58,8 @@ impl<'a> FuelPurchaseRepository<'a> {
         })
     }
 
-    const SELECT_SQL: &'static str = "SELECT fp.id, fp.purchase_date, fp.product_id, p.code AS product_code,
+    const SELECT_SQL: &'static str =
+        "SELECT fp.id, fp.purchase_date, fp.product_id, p.code AS product_code,
              fp.supplier_partner_id, bp.display_name AS supplier_name,
              fp.quantity_milli_litres, fp.unit_cost_minor_per_litre, fp.total_cost_minor,
              fp.invoice_reference, fp.payment_status, fp.notes, fp.status, fp.batch_id,
@@ -67,13 +68,20 @@ impl<'a> FuelPurchaseRepository<'a> {
       INNER JOIN fuel_products p ON p.id = fp.product_id
       LEFT JOIN business_partners bp ON bp.id = fp.supplier_partner_id";
 
-    pub fn list(&self, query: &FuelPurchaseListQueryDto) -> Result<Vec<FuelPurchaseDto>, CommandErrorDto> {
+    pub fn list(
+        &self,
+        query: &FuelPurchaseListQueryDto,
+    ) -> Result<Vec<FuelPurchaseDto>, CommandErrorDto> {
         let conn = self.db.conn();
         let mut sql = format!("{} WHERE 1=1", Self::SELECT_SQL);
         let mut bind_search = false;
         let mut bind_status = false;
 
-        if query.status.as_ref().is_some_and(|s| s != "all" && !s.is_empty()) {
+        if query
+            .status
+            .as_ref()
+            .is_some_and(|s| s != "all" && !s.is_empty())
+        {
             sql.push_str(" AND fp.status = ?");
             bind_status = true;
         }
@@ -100,7 +108,11 @@ impl<'a> FuelPurchaseRepository<'a> {
 
         let rows = if bind_status && bind_search {
             stmt.query_map(
-                params![query.status.as_ref().unwrap(), search_pattern, search_pattern],
+                params![
+                    query.status.as_ref().unwrap(),
+                    search_pattern,
+                    search_pattern
+                ],
                 Self::map_row,
             )
         } else if bind_status {
@@ -120,25 +132,38 @@ impl<'a> FuelPurchaseRepository<'a> {
     pub fn find_by_id(&self, id: &str) -> Result<FuelPurchaseDto, CommandErrorDto> {
         let conn = self.db.conn();
         let sql = format!("{} WHERE fp.id = ?1", Self::SELECT_SQL);
-        conn.query_row(&sql, params![id], Self::map_row).map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => not_found("FuelPurchase", id),
-            _ => db_error("DB_QUERY_FAILED", &e.to_string()),
-        })
+        conn.query_row(&sql, params![id], Self::map_row)
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => not_found("FuelPurchase", id),
+                _ => db_error("DB_QUERY_FAILED", &e.to_string()),
+            })
     }
 
     fn compute_total(quantity_milli: i64, unit_cost_minor: i64) -> i64 {
         (quantity_milli * unit_cost_minor) / 1000
     }
 
-    fn validate_record_input(&self, input: &RecordFuelPurchaseInputDto) -> Result<String, CommandErrorDto> {
+    fn validate_record_input(
+        &self,
+        input: &RecordFuelPurchaseInputDto,
+    ) -> Result<String, CommandErrorDto> {
         if input.quantity_milli_litres <= 0 {
-            return Err(conflict("INVALID_QUANTITY", "Quantity must be greater than zero."));
+            return Err(conflict(
+                "INVALID_QUANTITY",
+                "Quantity must be greater than zero.",
+            ));
         }
         if input.unit_cost_minor_per_litre <= 0 {
-            return Err(conflict("INVALID_RATE", "Purchase rate must be greater than zero."));
+            return Err(conflict(
+                "INVALID_RATE",
+                "Purchase rate must be greater than zero.",
+            ));
         }
         if input.payment_status != "paid" && input.payment_status != "credit" {
-            return Err(conflict("INVALID_PAYMENT_STATUS", "Invalid payment status."));
+            return Err(conflict(
+                "INVALID_PAYMENT_STATUS",
+                "Invalid payment status.",
+            ));
         }
         if input.payment_status == "credit" && input.supplier_partner_id.is_none() {
             return Err(conflict(
@@ -167,11 +192,18 @@ impl<'a> FuelPurchaseRepository<'a> {
         Ok(product_id)
     }
 
-    pub fn record(&self, input: &RecordFuelPurchaseInputDto) -> Result<FuelPurchaseDto, CommandErrorDto> {
+    pub fn record(
+        &self,
+        input: &RecordFuelPurchaseInputDto,
+    ) -> Result<FuelPurchaseDto, CommandErrorDto> {
         let product_id = self.validate_record_input(input)?;
-        let total_cost_minor = Self::compute_total(input.quantity_milli_litres, input.unit_cost_minor_per_litre);
+        let total_cost_minor =
+            Self::compute_total(input.quantity_milli_litres, input.unit_cost_minor_per_litre);
         if total_cost_minor <= 0 {
-            return Err(conflict("INVALID_TOTAL", "Purchase total must be greater than zero."));
+            return Err(conflict(
+                "INVALID_TOTAL",
+                "Purchase total must be greater than zero.",
+            ));
         }
 
         let conn = self.db.conn();
@@ -181,7 +213,11 @@ impl<'a> FuelPurchaseRepository<'a> {
 
         let id = format!("fp-{}", Uuid::new_v4());
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
-        let status = if input.post_immediately { "posted" } else { "draft" };
+        let status = if input.post_immediately {
+            "posted"
+        } else {
+            "draft"
+        };
         let mut batch_id: Option<String> = None;
 
         if input.post_immediately {
@@ -276,7 +312,10 @@ impl<'a> FuelPurchaseRepository<'a> {
         Ok(batch_id)
     }
 
-    pub fn post(&self, input: &PostFuelPurchaseInputDto) -> Result<FuelPurchaseDto, CommandErrorDto> {
+    pub fn post(
+        &self,
+        input: &PostFuelPurchaseInputDto,
+    ) -> Result<FuelPurchaseDto, CommandErrorDto> {
         let existing = self.find_by_id(&input.purchase_id)?;
         if existing.status != "draft" {
             return Err(conflict(
@@ -339,7 +378,10 @@ impl<'a> FuelPurchaseRepository<'a> {
         self.find_by_id(&input.purchase_id)
     }
 
-    pub fn void_purchase(&self, input: &VoidFuelPurchaseInputDto) -> Result<FuelPurchaseDto, CommandErrorDto> {
+    pub fn void_purchase(
+        &self,
+        input: &VoidFuelPurchaseInputDto,
+    ) -> Result<FuelPurchaseDto, CommandErrorDto> {
         let existing = self.find_by_id(&input.purchase_id)?;
         if existing.status != "draft" {
             return Err(conflict(
@@ -371,9 +413,7 @@ impl<'a> FuelPurchaseRepository<'a> {
     }
 }
 
-fn map_person_ledger_error(
-    error: crate::dto::person_ledger::CommandErrorDto,
-) -> CommandErrorDto {
+fn map_person_ledger_error(error: crate::dto::person_ledger::CommandErrorDto) -> CommandErrorDto {
     CommandErrorDto {
         code: error.code,
         message: error.message,
@@ -472,7 +512,9 @@ mod tests {
 
         let batch_count: i64 = db
             .conn()
-            .query_row("SELECT COUNT(*) FROM fuel_inventory_batches", [], |row| row.get(0))
+            .query_row("SELECT COUNT(*) FROM fuel_inventory_batches", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(batch_count, 1);
     }

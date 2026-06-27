@@ -8,7 +8,9 @@ use crate::dto::organization::{
 use crate::repositories::organization_repository::OrganizationRepository;
 use crate::repositories::workspace_repository::WorkspaceRepository;
 
-fn load_workspace_snapshot(db: &AppDatabase) -> Result<WorkspaceSnapshotDto, crate::dto::organization::CommandErrorDto> {
+fn load_workspace_snapshot(
+    db: &AppDatabase,
+) -> Result<WorkspaceSnapshotDto, crate::dto::organization::CommandErrorDto> {
     db.with_connection(|conn| {
         let workspace_repo = WorkspaceRepository::new(conn);
         let org_repo = OrganizationRepository::new(conn);
@@ -45,7 +47,8 @@ pub fn organization_get_by_id(
     db: State<'_, AppDatabase>,
     organization_id: String,
 ) -> CommandResultDto<OrganizationDto> {
-    match db.with_connection(|conn| OrganizationRepository::new(conn).find_by_id(&organization_id)) {
+    match db.with_connection(|conn| OrganizationRepository::new(conn).find_by_id(&organization_id))
+    {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {
             ok: false,
@@ -56,7 +59,9 @@ pub fn organization_get_by_id(
 }
 
 #[tauri::command]
-pub fn workspace_get_snapshot(db: State<'_, AppDatabase>) -> CommandResultDto<WorkspaceSnapshotDto> {
+pub fn workspace_get_snapshot(
+    db: State<'_, AppDatabase>,
+) -> CommandResultDto<WorkspaceSnapshotDto> {
     match load_workspace_snapshot(&db) {
         Ok(snapshot) => CommandResultDto::ok(snapshot),
         Err(e) => CommandResultDto {
@@ -282,7 +287,9 @@ pub fn workspace_initialize(
 }
 
 #[tauri::command]
-pub fn workspace_resolve_active(db: State<'_, AppDatabase>) -> CommandResultDto<WorkspaceSnapshotDto> {
+pub fn workspace_resolve_active(
+    db: State<'_, AppDatabase>,
+) -> CommandResultDto<WorkspaceSnapshotDto> {
     match db.with_connection(|conn| {
         let org_repo = OrganizationRepository::new(conn);
         let workspace_repo = WorkspaceRepository::new(conn);
@@ -291,7 +298,8 @@ pub fn workspace_resolve_active(db: State<'_, AppDatabase>) -> CommandResultDto<
         let active_orgs = org_repo.list_active()?;
 
         if workspace.active_organization_id.is_none() && active_orgs.len() == 1 {
-            workspace = workspace_repo.set_active_organization(Some(&active_orgs[0].id), workspace.version)?;
+            workspace = workspace_repo
+                .set_active_organization(Some(&active_orgs[0].id), workspace.version)?;
         }
 
         let organizations = org_repo.list_all()?;

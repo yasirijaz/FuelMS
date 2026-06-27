@@ -119,8 +119,9 @@ pub fn run_migrations(db: &DbConnection) -> Result<(), String> {
 
         match result {
             Ok(()) => {
-                conn.execute_batch("COMMIT;")
-                    .map_err(|e| format!("Failed to commit migration {}: {e}", migration.version))?;
+                conn.execute_batch("COMMIT;").map_err(|e| {
+                    format!("Failed to commit migration {}: {e}", migration.version)
+                })?;
             }
             Err(err) => {
                 let _ = conn.execute_batch("ROLLBACK;");
@@ -160,11 +161,9 @@ mod tests {
 
         let version: i64 = conn
             .conn()
-            .query_row(
-                "SELECT MAX(version) FROM schema_migrations",
-                [],
-                |row| row.get(0),
-            )
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| {
+                row.get(0)
+            })
             .unwrap();
         assert_eq!(version, 13);
 

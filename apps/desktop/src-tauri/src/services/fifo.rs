@@ -17,7 +17,10 @@ pub struct FifoConsumption {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FifoError {
-    InsufficientStock { available_milli: i64, requested_milli: i64 },
+    InsufficientStock {
+        available_milli: i64,
+        requested_milli: i64,
+    },
     InvalidQuantity,
 }
 

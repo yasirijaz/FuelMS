@@ -7,7 +7,7 @@ import {
 import { OrganizationCreateForm } from './OrganizationCreateForm'
 import { OrganizationEditForm } from './OrganizationEditForm'
 
-export function OrganizationManagementPage() {
+export function OrganizationManagementPage({ embedded = false }: { embedded?: boolean }) {
   const organizations = useWorkspaceStore((state) => state.organizations)
   const activeOrganization = useWorkspaceStore((state) => state.activeOrganization)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -16,20 +16,27 @@ export function OrganizationManagementPage() {
 
   const activeId = activeOrganization?.id.toString()
 
-  return (
-    <section className="mx-auto max-w-5xl space-y-8 p-8">
-      <header className="space-y-2">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500">
-          Workspace
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Organizations
-        </h1>
-        <p className="max-w-3xl text-base leading-7 text-slate-600">
-          Manage the petrol pump businesses in this installation. Every future business
-          record will belong to the active organization.
-        </p>
-      </header>
+  const content = (
+    <>
+      {!embedded && (
+        <header className="space-y-2">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500">Workspace</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Organizations</h1>
+          <p className="max-w-3xl text-base leading-7 text-slate-600">
+            Manage the petrol pump businesses in this installation. Every future business record
+            will belong to the active organization.
+          </p>
+        </header>
+      )}
+
+      {embedded && (
+        <header className="space-y-1">
+          <h2 className="text-xl font-semibold tracking-tight text-slate-950">Workspace</h2>
+          <p className="max-w-3xl text-sm leading-6 text-slate-600">
+            Manage organizations for this installation.
+          </p>
+        </header>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[1.2fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -138,6 +145,16 @@ export function OrganizationManagementPage() {
           </div>
         </div>
       </div>
+    </>
+  )
+
+  if (embedded) {
+    return <div className="space-y-6">{content}</div>
+  }
+
+  return (
+    <section className="mx-auto max-w-5xl space-y-8 p-8">
+      {content}
     </section>
   )
 }
