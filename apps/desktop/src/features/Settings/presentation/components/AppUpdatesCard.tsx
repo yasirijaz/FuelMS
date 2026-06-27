@@ -20,7 +20,7 @@ export function AppUpdatesCard() {
   const { isSupported, phase, result, progress, error, check, install } = useAppUpdater()
 
   const isBusy = phase === 'checking' || phase === 'installing'
-  const githubRepo = import.meta.env.VITE_UPDATER_GITHUB_REPO ?? 'your-org/FuelMS'
+  const githubRepo = import.meta.env.VITE_UPDATER_GITHUB_REPO ?? 'yasirijaz/FuelMS'
 
   return (
     <Card>

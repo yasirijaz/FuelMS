@@ -40,6 +40,9 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# Tauri updater signing keys (keep private key outside the repo)
+.tauri/
+
 # TypeScript cache
 *.tsbuildinfo
 
