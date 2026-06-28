@@ -6,6 +6,7 @@ import { formatDate } from '@shared/utils/format'
 import { useSaleListPage } from '../application/hooks/useSaleList'
 import {
   usePostSale,
+  useSalesPeriodSummary,
   useTodaySalesSummary,
   useVoidSale,
 } from '../application/hooks/useSaleQueries'
@@ -13,6 +14,7 @@ import { fuelSaleRepositoryRuntime } from '../application/saleModule'
 import { SaleListTable } from './components/SaleListTable'
 import { SaleListToolbar } from './components/SaleListToolbar'
 import { RecordSaleModal } from './components/RecordSaleModal'
+import { SalesPeriodCashPanel } from './components/SalesPeriodCashPanel'
 import { TodaySalesPanel } from './components/TodaySalesPanel'
 
 export function SalesPage() {
@@ -22,6 +24,7 @@ export function SalesPage() {
   const postMutation = usePostSale()
   const voidMutation = useVoidSale()
   const todaySalesQuery = useTodaySalesSummary()
+  const periodSummaryQuery = useSalesPeriodSummary(filters.fromDateIso, filters.toDateIso)
 
   async function handlePost(saleId: string, version: number): Promise<void> {
     try {
@@ -93,6 +96,11 @@ export function SalesPage() {
         </CardHeader>
         <CardBody className="space-y-4">
           <SaleListToolbar filters={filters} onFiltersChange={setFilters} />
+
+          <SalesPeriodCashPanel
+            summary={periodSummaryQuery.data}
+            isLoading={periodSummaryQuery.isLoading}
+          />
 
           {isError ? (
             <div className="rounded-[var(--ui-radius)] border border-[var(--ui-danger)]/30 bg-[var(--ui-danger)]/10 px-4 py-3 text-sm text-[var(--ui-danger)]">

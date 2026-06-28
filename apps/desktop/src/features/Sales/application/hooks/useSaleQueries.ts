@@ -17,6 +17,7 @@ import {
 } from '../saleModule'
 import type { SaleListFilters } from '../types/SaleListItem'
 import { mapSaleToListItem, toListQuery } from '../services/saleViewMappers'
+import { buildSalesPeriodSummary } from '../services/salesPeriodSummary'
 
 function invalidateSaleQueries(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -40,6 +41,18 @@ export function useSaleList(filters: SaleListFilters) {
       const result = await listSalesService.execute(query)
       if (!result.ok) throw result.error
       return result.value.map(mapSaleToListItem)
+    },
+    staleTime: 30_000,
+  })
+}
+
+export function useSalesPeriodSummary(fromDateIso: string, toDateIso: string) {
+  return useQuery({
+    queryKey: saleQueryKeys.periodSummary(fromDateIso, toDateIso),
+    queryFn: async () => {
+      const result = await listSalesService.execute({ fromDateIso, toDateIso })
+      if (!result.ok) throw result.error
+      return buildSalesPeriodSummary(result.value, fromDateIso, toDateIso)
     },
     staleTime: 30_000,
   })

@@ -26,6 +26,8 @@ export const saleQueryKeys = {
   lists: () => [...saleQueryKeys.all, 'list'] as const,
   list: (query: FuelSaleListQuery) => [...saleQueryKeys.lists(), query] as const,
   todaySummary: () => [...saleQueryKeys.all, 'todaySummary'] as const,
+  periodSummary: (fromDateIso: string, toDateIso: string) =>
+    [...saleQueryKeys.all, 'periodSummary', fromDateIso, toDateIso] as const,
   details: () => [...saleQueryKeys.all, 'detail'] as const,
   detail: (saleId: string) => [...saleQueryKeys.details(), saleId] as const,
   stock: (productCode: string) => [...saleQueryKeys.all, 'stock', productCode] as const,

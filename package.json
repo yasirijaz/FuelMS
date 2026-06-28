@@ -1,7 +1,7 @@
 {
   "name": "fuelms",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Enterprise ERP for petrol pumps — workspace root",
   "type": "module",
   "scripts": {
@@ -17,6 +17,7 @@
     "test": "pnpm --filter @fuelms/desktop test",
     "test:e2e": "pnpm --filter @fuelms/desktop test:e2e",
     "test:all": "pnpm -r test",
+    "release:tag": "node scripts/release-tag.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
