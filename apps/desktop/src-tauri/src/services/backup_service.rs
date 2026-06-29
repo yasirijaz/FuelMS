@@ -53,7 +53,7 @@ impl BackupService {
             .map_err(|e| io_error("Failed to create temp backup dir", e))?;
 
         let result = (|| {
-            db.with_connection(|conn| {
+            db.with_business(|conn| {
                 conn.conn()
                     .execute(
                         "VACUUM INTO ?1",
@@ -238,7 +238,7 @@ impl BackupService {
 
         let dir = Self::backup_dir(backups_dir, &input.backup_id)?;
         let backup_db = dir.join("fuelms.sqlite3");
-        let live_db = db.path().to_path_buf();
+        let live_db = db.business_path().to_path_buf();
 
         let safety_name = format!(
             "pre-restore-{}.sqlite3",
@@ -246,7 +246,7 @@ impl BackupService {
         );
         let safety_copy = backups_dir.join(safety_name);
 
-        db.close_connection();
+        db.close_business_connection();
 
         let restore_result: Result<(), CommandErrorDto> = (|| {
             fs::copy(&live_db, &safety_copy)
@@ -254,13 +254,13 @@ impl BackupService {
             Self::remove_wal_shm(&live_db);
             fs::copy(&backup_db, &live_db)
                 .map_err(|e| io_error("Failed to replace live database with backup", e))?;
-            db.reopen_connection()
+            db.reopen_business_connection()
                 .map_err(|e| db_error("DB_REOPEN_FAILED", &e))?;
             Ok(())
         })();
 
         if let Err(err) = restore_result {
-            let _ = db.reopen_connection();
+            let _ = db.reopen_business_connection();
             let _ = Self::record_audit(
                 db,
                 "restore",
@@ -301,7 +301,7 @@ impl BackupService {
         db: &AppDatabase,
         limit: i64,
     ) -> Result<Vec<BackupAuditEventDto>, CommandErrorDto> {
-        db.with_connection(|conn| {
+        db.with_business(|conn| {
             let conn = conn.conn();
             let mut stmt = conn
                 .prepare(
@@ -431,7 +431,7 @@ impl BackupService {
         message: Option<String>,
         actor: &str,
     ) -> Result<(), CommandErrorDto> {
-        db.with_connection(|conn| {
+        db.with_business(|conn| {
             let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
             conn.conn()
                 .execute(
@@ -493,6 +493,8 @@ fn conflict(code: &str, message: impl Into<String>) -> CommandErrorDto {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dto::organization::CreateOrganizationInputDto;
+    use crate::repositories::{OrganizationRepository, WorkspaceRepository};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_root() -> PathBuf {
@@ -503,15 +505,49 @@ mod tests {
         std::env::temp_dir().join(format!("fuelms-backup-test-{nanos}"))
     }
 
+    fn open_test_app_database(root: &Path) -> AppDatabase {
+        let app_data_dir = root.to_path_buf();
+        let registry_path = root.join("fuelms.sqlite3");
+        let db = AppDatabase::connect_registry(registry_path, app_data_dir).unwrap();
+
+        let org_id = db
+            .with_registry(|conn| -> Result<String, String> {
+                let workspace_repo = WorkspaceRepository::new(conn);
+                let org_repo = OrganizationRepository::new(conn);
+                workspace_repo
+                    .ensure_default()
+                    .map_err(|e| e.message)?;
+                let created = org_repo
+                    .insert(&CreateOrganizationInputDto {
+                        name: "Test Organization".to_string(),
+                        legal_name: None,
+                        address: None,
+                        city: None,
+                        phone: None,
+                        tax_id: None,
+                    })
+                    .map_err(|e| e.message)?;
+                let workspace = workspace_repo.ensure_default().map_err(|e| e.message)?;
+                workspace_repo
+                    .set_active_organization(Some(&created.id), workspace.version)
+                    .map_err(|e| e.message)?;
+                Ok(created.id)
+            })
+            .unwrap();
+
+        db.provision_organization_database(&org_id).unwrap();
+        db.switch_active_organization(&org_id).unwrap();
+        db
+    }
+
     #[test]
     fn create_and_verify_backup() {
         let root = temp_root();
         fs::create_dir_all(&root).unwrap();
-        let db_path = root.join("fuelms.sqlite3");
         let backups_dir = root.join("backups");
         fs::create_dir_all(&backups_dir).unwrap();
 
-        let db = AppDatabase::connect(db_path).unwrap();
+        let db = open_test_app_database(&root);
 
         let manifest = BackupService::create_backup(
             &db,
@@ -539,11 +575,10 @@ mod tests {
     fn restore_replaces_database_state() {
         let root = temp_root();
         fs::create_dir_all(&root).unwrap();
-        let db_path = root.join("fuelms.sqlite3");
         let backups_dir = root.join("backups");
         fs::create_dir_all(&backups_dir).unwrap();
 
-        let db = AppDatabase::connect(db_path.clone()).unwrap();
+        let db = open_test_app_database(&root);
 
         let manifest = BackupService::create_backup(
             &db,
@@ -555,7 +590,7 @@ mod tests {
         )
         .unwrap();
 
-        db.with_connection(|conn| {
+        db.with_business(|conn| {
             conn.conn()
                 .execute(
                     "INSERT INTO business_partners (id, display_name, created_at, updated_at)
@@ -579,7 +614,7 @@ mod tests {
         .unwrap();
 
         let count: i64 = db
-            .with_connection(|conn| {
+            .with_business(|conn| {
                 conn.conn()
                     .query_row(
                         "SELECT COUNT(*) FROM business_partners WHERE id = 'bp-restore'",

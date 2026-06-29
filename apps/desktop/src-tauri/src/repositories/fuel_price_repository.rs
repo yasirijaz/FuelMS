@@ -155,11 +155,16 @@ impl<'a> FuelPriceRepository<'a> {
         if record.status == "active" {
             if let Some(current) = Self::find_active_in_tx(&tx, &record.product_id)? {
                 superseded_id = Some(current.id.clone());
-                Self::supersede_tx(&tx, &current, &record.id, &record.effective_from_iso)?;
+                Self::mark_superseded_tx(&tx, &current, &record.effective_from_iso)?;
             }
         }
 
         Self::insert_tx(&tx, record)?;
+
+        if let Some(old_id) = &superseded_id {
+            Self::link_superseded_tx(&tx, old_id, &record.id)?;
+        }
+
         tx.commit()
             .map_err(|e| db_error("TX_COMMIT_FAILED", &e.to_string()))?;
 
@@ -326,10 +331,9 @@ impl<'a> FuelPriceRepository<'a> {
         Ok(())
     }
 
-    fn supersede_tx(
+    fn mark_superseded_tx(
         tx: &Transaction<'_>,
         current: &FuelPriceRecordDto,
-        new_id: &str,
         effective_to_iso: &str,
     ) -> Result<(), CommandErrorDto> {
         let updated = tx
@@ -337,11 +341,10 @@ impl<'a> FuelPriceRepository<'a> {
                 "UPDATE fuel_price_records SET
                     status = 'superseded',
                     effective_to = ?2,
-                    superseded_by_id = ?3,
                     updated_at = datetime('now'),
                     version = version + 1
                  WHERE id = ?1 AND status = 'active' AND is_locked = 0",
-                params![current.id, effective_to_iso, new_id],
+                params![current.id, effective_to_iso],
             )
             .map_err(|e| db_error("DB_UPDATE_FAILED", &e.to_string()))?;
 
@@ -353,6 +356,32 @@ impl<'a> FuelPriceRepository<'a> {
             });
         }
         Ok(())
+    }
+
+    fn link_superseded_tx(
+        tx: &Transaction<'_>,
+        old_id: &str,
+        new_id: &str,
+    ) -> Result<(), CommandErrorDto> {
+        tx.execute(
+            "UPDATE fuel_price_records SET
+                superseded_by_id = ?2,
+                updated_at = datetime('now')
+             WHERE id = ?1",
+            params![old_id, new_id],
+        )
+        .map_err(|e| db_error("DB_UPDATE_FAILED", &e.to_string()))?;
+        Ok(())
+    }
+
+    fn supersede_tx(
+        tx: &Transaction<'_>,
+        current: &FuelPriceRecordDto,
+        new_id: &str,
+        effective_to_iso: &str,
+    ) -> Result<(), CommandErrorDto> {
+        Self::mark_superseded_tx(tx, current, effective_to_iso)?;
+        Self::link_superseded_tx(tx, &current.id, new_id)
     }
 }
 

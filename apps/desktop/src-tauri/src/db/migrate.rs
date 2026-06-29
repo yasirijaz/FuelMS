@@ -8,7 +8,10 @@ struct Migration {
     sql: &'static str,
 }
 
-const MIGRATIONS: &[Migration] = &[
+const REGISTRY_MIGRATION_VERSIONS: &[i64] = &[1, 4, 13, 14];
+const BUSINESS_MIGRATION_VERSIONS: &[i64] = &[1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12];
+
+const ALL_MIGRATIONS: &[Migration] = &[
     Migration {
         version: 1,
         name: "schema_migrations",
@@ -74,14 +77,17 @@ const MIGRATIONS: &[Migration] = &[
         name: "organization_workspace_repair",
         sql: include_str!("migrations/013_organization_workspace_repair.sql"),
     },
+    Migration {
+        version: 14,
+        name: "organization_data_split",
+        sql: include_str!("migrations/014_organization_data_split.sql"),
+    },
 ];
 
-/// Apply pending migrations in order inside a single transaction.
-pub fn run_migrations(db: &DbConnection) -> Result<(), String> {
+fn apply_migrations(db: &DbConnection, versions: &[i64]) -> Result<(), String> {
     let conn = db.conn();
 
-    // Ensure migration table exists before querying current version.
-    conn.execute_batch(MIGRATIONS[0].sql)
+    conn.execute_batch(ALL_MIGRATIONS[0].sql)
         .map_err(|e| format!("Failed to bootstrap schema_migrations: {e}"))?;
 
     let current_version: i64 = conn
@@ -92,7 +98,10 @@ pub fn run_migrations(db: &DbConnection) -> Result<(), String> {
         )
         .map_err(|e| format!("Failed to read schema version: {e}"))?;
 
-    for migration in MIGRATIONS.iter().filter(|m| m.version > current_version) {
+    for migration in ALL_MIGRATIONS
+        .iter()
+        .filter(|m| versions.contains(&m.version) && m.version > current_version)
+    {
         log::info!(
             "Applying migration {} — {}",
             migration.version,
@@ -133,7 +142,22 @@ pub fn run_migrations(db: &DbConnection) -> Result<(), String> {
     Ok(())
 }
 
-/// Latest applied schema migration version (0 when empty).
+/// Workspace registry database: organizations, workspaces, app metadata.
+pub fn run_registry_migrations(db: &DbConnection) -> Result<(), String> {
+    apply_migrations(db, REGISTRY_MIGRATION_VERSIONS)
+}
+
+/// Per-organization business database: sales, purchases, inventory, cash, etc.
+pub fn run_business_migrations(db: &DbConnection) -> Result<(), String> {
+    apply_migrations(db, BUSINESS_MIGRATION_VERSIONS)
+}
+
+/// Legacy single-database bootstrap (tests only).
+pub fn run_migrations(db: &DbConnection) -> Result<(), String> {
+    let all_versions: Vec<i64> = ALL_MIGRATIONS.iter().map(|m| m.version).collect();
+    apply_migrations(db, &all_versions)
+}
+
 pub fn current_schema_version(db: &DbConnection) -> Result<i64, String> {
     let conn = db.conn();
     conn.query_row(
@@ -145,7 +169,19 @@ pub fn current_schema_version(db: &DbConnection) -> Result<i64, String> {
 }
 
 pub fn max_supported_schema_version() -> i64 {
-    MIGRATIONS.iter().map(|m| m.version).max().unwrap_or(0)
+    REGISTRY_MIGRATION_VERSIONS
+        .iter()
+        .chain(BUSINESS_MIGRATION_VERSIONS.iter())
+        .copied()
+        .max()
+        .unwrap_or(0)
+}
+
+pub fn max_supported_business_schema_version() -> i64 {
+    *BUSINESS_MIGRATION_VERSIONS
+        .iter()
+        .max()
+        .unwrap_or(&0)
 }
 
 #[cfg(test)]
@@ -165,7 +201,7 @@ mod tests {
                 row.get(0)
             })
             .unwrap();
-        assert_eq!(version, 13);
+        assert_eq!(version, 14);
 
         let product_count: i64 = conn
             .conn()
@@ -188,6 +224,37 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM workspaces", [], |row| row.get(0))
             .unwrap();
         assert_eq!(workspace_count, 1);
+    }
+
+    #[test]
+    fn registry_and_business_migrations_split_cleanly() {
+        let registry = DbConnection::open(std::path::Path::new(":memory:")).unwrap();
+        run_registry_migrations(&registry).unwrap();
+
+        let registry_version: i64 = registry
+            .conn()
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(registry_version, 14);
+
+        let business = DbConnection::open(std::path::Path::new(":memory:")).unwrap();
+        run_business_migrations(&business).unwrap();
+
+        let business_version: i64 = business
+            .conn()
+            .query_row("SELECT MAX(version) FROM schema_migrations", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(business_version, 12);
+
+        let fuel_sales_in_registry: i64 = registry
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'fuel_sales'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(fuel_sales_in_registry, 0);
     }
 
     #[test]

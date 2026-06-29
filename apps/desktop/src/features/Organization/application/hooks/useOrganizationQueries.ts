@@ -10,6 +10,7 @@ import {
   updateOrganizationService,
 } from '../organizationModule'
 import { useWorkspaceStore } from '@shared/stores/useWorkspaceStore'
+import { invalidateOrganizationDataQueries } from '@shared/lib/invalidateOrganizationData'
 import { mapWorkspaceSnapshotDtoToDomain } from '../../domain/mappers/organizationMappers'
 import type { WorkspaceSnapshotDto } from '../../domain/dtos/OrganizationDtos'
 
@@ -41,6 +42,7 @@ export function useCreateOrganization() {
     },
     onSuccess: (snapshot) => {
       applySnapshotToStore(snapshot)
+      invalidateOrganizationDataQueries(queryClient)
       void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.all })
       void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.snapshot })
     },
@@ -58,6 +60,7 @@ export function useInitializeWorkspace() {
     },
     onSuccess: (snapshot) => {
       applySnapshotToStore(snapshot)
+      invalidateOrganizationDataQueries(queryClient)
       void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.all })
       void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.snapshot })
     },
@@ -91,6 +94,8 @@ export function useActivateOrganization() {
     },
     onSuccess: (snapshot) => {
       applySnapshotToStore(snapshot)
+      invalidateOrganizationDataQueries(queryClient)
+      void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.all })
       void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.snapshot })
     },
   })
@@ -107,6 +112,7 @@ export function useArchiveOrganization() {
     },
     onSuccess: (snapshot) => {
       applySnapshotToStore(snapshot)
+      invalidateOrganizationDataQueries(queryClient)
       void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.all })
       void queryClient.invalidateQueries({ queryKey: organizationQueryKeys.snapshot })
     },

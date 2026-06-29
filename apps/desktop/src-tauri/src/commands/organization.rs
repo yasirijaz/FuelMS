@@ -11,7 +11,7 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 fn load_workspace_snapshot(
     db: &AppDatabase,
 ) -> Result<WorkspaceSnapshotDto, crate::dto::organization::CommandErrorDto> {
-    db.with_connection(|conn| {
+    db.with_registry(|conn| {
         let workspace_repo = WorkspaceRepository::new(conn);
         let org_repo = OrganizationRepository::new(conn);
 
@@ -32,7 +32,7 @@ fn load_workspace_snapshot(
 
 #[tauri::command]
 pub fn organization_list(db: State<'_, AppDatabase>) -> CommandResultDto<Vec<OrganizationDto>> {
-    match db.with_connection(|conn| OrganizationRepository::new(conn).list_all()) {
+    match db.with_registry(|conn| OrganizationRepository::new(conn).list_all()) {
         Ok(rows) => CommandResultDto::ok(rows),
         Err(e) => CommandResultDto {
             ok: false,
@@ -47,7 +47,7 @@ pub fn organization_get_by_id(
     db: State<'_, AppDatabase>,
     organization_id: String,
 ) -> CommandResultDto<OrganizationDto> {
-    match db.with_connection(|conn| OrganizationRepository::new(conn).find_by_id(&organization_id))
+    match db.with_registry(|conn| OrganizationRepository::new(conn).find_by_id(&organization_id))
     {
         Ok(row) => CommandResultDto::ok(row),
         Err(e) => CommandResultDto {
@@ -77,7 +77,7 @@ pub fn organization_create(
     db: State<'_, AppDatabase>,
     input: CreateOrganizationInputDto,
 ) -> CommandResultDto<WorkspaceSnapshotDto> {
-    match db.with_connection(|conn| {
+    match db.with_registry(|conn| {
         let org_repo = OrganizationRepository::new(conn);
         let workspace_repo = WorkspaceRepository::new(conn);
 
@@ -90,6 +90,7 @@ pub fn organization_create(
         }
 
         let created = org_repo.insert(&input)?;
+        let created_id = created.id.clone();
         let workspace = workspace_repo.ensure_default()?;
 
         if workspace.active_organization_id.is_none() {
@@ -103,13 +104,45 @@ pub fn organization_create(
             .as_deref()
             .and_then(|id| org_repo.find_by_id(id).ok());
 
-        Ok(WorkspaceSnapshotDto {
+        Ok((WorkspaceSnapshotDto {
             workspace,
             organizations,
             active_organization,
-        })
+        }, created_id))
     }) {
-        Ok(snapshot) => CommandResultDto::ok(snapshot),
+        Ok((snapshot, created_id)) => {
+            if let Err(message) = db.provision_organization_database(&created_id) {
+                return CommandResultDto {
+                    ok: false,
+                    value: None,
+                    error: Some(crate::dto::organization::CommandErrorDto {
+                        code: "ORGANIZATION_DATABASE_FAILED".to_string(),
+                        message,
+                        kind: "infrastructure".to_string(),
+                    }),
+                };
+            }
+
+            if snapshot
+                .active_organization
+                .as_ref()
+                .is_some_and(|org| org.id == created_id)
+            {
+                if let Err(message) = db.switch_active_organization(&created_id) {
+                    return CommandResultDto {
+                        ok: false,
+                        value: None,
+                        error: Some(crate::dto::organization::CommandErrorDto {
+                            code: "ORGANIZATION_SWITCH_FAILED".to_string(),
+                            message,
+                            kind: "infrastructure".to_string(),
+                        }),
+                    };
+                }
+            }
+
+            CommandResultDto::ok(snapshot)
+        }
         Err(e) => CommandResultDto {
             ok: false,
             value: None,
@@ -123,7 +156,7 @@ pub fn organization_update(
     db: State<'_, AppDatabase>,
     input: UpdateOrganizationInputDto,
 ) -> CommandResultDto<OrganizationDto> {
-    match db.with_connection(|conn| {
+    match db.with_registry(|conn| {
         let org_repo = OrganizationRepository::new(conn);
 
         if org_repo.exists_active_by_name_excluding(&input.name, Some(&input.id))? {
@@ -150,7 +183,7 @@ pub fn organization_activate(
     db: State<'_, AppDatabase>,
     organization_id: String,
 ) -> CommandResultDto<WorkspaceSnapshotDto> {
-    match db.with_connection(|conn| {
+    let registry_result = db.with_registry(|conn| {
         let org_repo = OrganizationRepository::new(conn);
         let workspace_repo = WorkspaceRepository::new(conn);
 
@@ -175,8 +208,23 @@ pub fn organization_activate(
             organizations,
             active_organization,
         })
-    }) {
-        Ok(snapshot) => CommandResultDto::ok(snapshot),
+    });
+
+    match registry_result {
+        Ok(snapshot) => {
+            if let Err(message) = db.switch_active_organization(&organization_id) {
+                return CommandResultDto {
+                    ok: false,
+                    value: None,
+                    error: Some(crate::dto::organization::CommandErrorDto {
+                        code: "ORGANIZATION_SWITCH_FAILED".to_string(),
+                        message,
+                        kind: "infrastructure".to_string(),
+                    }),
+                };
+            }
+            CommandResultDto::ok(snapshot)
+        }
         Err(e) => CommandResultDto {
             ok: false,
             value: None,
@@ -191,7 +239,7 @@ pub fn organization_archive(
     organization_id: String,
     version: i64,
 ) -> CommandResultDto<WorkspaceSnapshotDto> {
-    match db.with_connection(|conn| {
+    match db.with_registry(|conn| {
         let org_repo = OrganizationRepository::new(conn);
         let workspace_repo = WorkspaceRepository::new(conn);
 
@@ -217,7 +265,25 @@ pub fn organization_archive(
             active_organization,
         })
     }) {
-        Ok(snapshot) => CommandResultDto::ok(snapshot),
+        Ok(snapshot) => {
+            if let Some(active) = snapshot.active_organization.as_ref() {
+                if let Err(message) = db.switch_active_organization(&active.id) {
+                    return CommandResultDto {
+                        ok: false,
+                        value: None,
+                        error: Some(crate::dto::organization::CommandErrorDto {
+                            code: "ORGANIZATION_SWITCH_FAILED".to_string(),
+                            message,
+                            kind: "infrastructure".to_string(),
+                        }),
+                    };
+                }
+            } else {
+                db.close_business_connection();
+            }
+
+            CommandResultDto::ok(snapshot)
+        }
         Err(e) => CommandResultDto {
             ok: false,
             value: None,
@@ -231,7 +297,7 @@ pub fn workspace_initialize(
     db: State<'_, AppDatabase>,
     input: InitializeWorkspaceInputDto,
 ) -> CommandResultDto<WorkspaceSnapshotDto> {
-    match db.with_connection(|conn| {
+    match db.with_registry(|conn| {
         let org_repo = OrganizationRepository::new(conn);
         let workspace_repo = WorkspaceRepository::new(conn);
 
@@ -265,19 +331,46 @@ pub fn workspace_initialize(
         }
 
         let created = org_repo.insert(&org_input)?;
+        let created_id = created.id.clone();
         let workspace = workspace_repo.ensure_default()?;
-        workspace_repo.set_active_organization(Some(&created.id), workspace.version)?;
+        workspace_repo.set_active_organization(Some(&created_id), workspace.version)?;
 
         let workspace = workspace_repo.ensure_default()?;
         let organizations = org_repo.list_all()?;
 
-        Ok(WorkspaceSnapshotDto {
+        Ok((WorkspaceSnapshotDto {
             workspace,
             organizations,
             active_organization: Some(created),
-        })
+        }, created_id))
     }) {
-        Ok(snapshot) => CommandResultDto::ok(snapshot),
+        Ok((snapshot, created_id)) => {
+            if let Err(message) = db.provision_organization_database(&created_id) {
+                return CommandResultDto {
+                    ok: false,
+                    value: None,
+                    error: Some(crate::dto::organization::CommandErrorDto {
+                        code: "ORGANIZATION_DATABASE_FAILED".to_string(),
+                        message,
+                        kind: "infrastructure".to_string(),
+                    }),
+                };
+            }
+
+            if let Err(message) = db.switch_active_organization(&created_id) {
+                return CommandResultDto {
+                    ok: false,
+                    value: None,
+                    error: Some(crate::dto::organization::CommandErrorDto {
+                        code: "ORGANIZATION_SWITCH_FAILED".to_string(),
+                        message,
+                        kind: "infrastructure".to_string(),
+                    }),
+                };
+            }
+
+            CommandResultDto::ok(snapshot)
+        }
         Err(e) => CommandResultDto {
             ok: false,
             value: None,
@@ -290,7 +383,7 @@ pub fn workspace_initialize(
 pub fn workspace_resolve_active(
     db: State<'_, AppDatabase>,
 ) -> CommandResultDto<WorkspaceSnapshotDto> {
-    match db.with_connection(|conn| {
+    match db.with_registry(|conn| {
         let org_repo = OrganizationRepository::new(conn);
         let workspace_repo = WorkspaceRepository::new(conn);
 
