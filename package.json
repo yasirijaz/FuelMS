@@ -1,7 +1,7 @@
 {
   "name": "fuelms",
   "private": true,
-  "version": "0.1.2",
+  "version": "0.1.5",
   "description": "Enterprise ERP for petrol pumps — workspace root",
   "type": "module",
   "scripts": {
