@@ -142,7 +142,7 @@ mod tests {
     use crate::db::connection::DbConnection;
     use crate::db::migrate::run_migrations;
     use crate::dto::organization::CreateOrganizationInputDto;
-    use crate::repositories::OrganizationRepository;
+    use crate::repositories::organization_repository::OrganizationRepository;
 
     #[test]
     fn ensure_default_inserts_workspace_when_missing() {

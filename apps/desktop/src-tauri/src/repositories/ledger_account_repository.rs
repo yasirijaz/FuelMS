@@ -77,6 +77,7 @@ impl<'a> LedgerAccountRepository<'a> {
             })
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn find_by_code(&self, code: &str) -> Result<LedgerAccountDto, CommandErrorDto> {
         let conn = self.db.conn();
         let sql = format!(
@@ -88,20 +89,6 @@ impl<'a> LedgerAccountRepository<'a> {
                 rusqlite::Error::QueryReturnedNoRows => not_found("LedgerAccount", code),
                 _ => db_error("DB_QUERY_FAILED", &e.to_string()),
             })
-    }
-
-    pub fn is_active_account(&self, id: &str) -> Result<bool, CommandErrorDto> {
-        let conn = self.db.conn();
-        conn.query_row(
-            "SELECT is_active FROM ledger_accounts WHERE id = ?1",
-            params![id],
-            |row| row.get::<_, i64>(0),
-        )
-        .map(|v| v != 0)
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => not_found("LedgerAccount", id),
-            _ => db_error("DB_QUERY_FAILED", &e.to_string()),
-        })
     }
 }
 

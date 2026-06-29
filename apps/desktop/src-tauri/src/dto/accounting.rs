@@ -88,6 +88,7 @@ pub struct AccountingPeriodVersionInputDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(not(test), allow(dead_code))]
 pub struct PostJournalLineInputDto {
     pub account_id: String,
     pub line_memo: Option<String>,
@@ -97,6 +98,7 @@ pub struct PostJournalLineInputDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(not(test), allow(dead_code))]
 pub struct PostJournalInputDto {
     pub entry_date_iso: String,
     pub memo: Option<String>,

@@ -147,6 +147,7 @@ impl<'a> JournalRepository<'a> {
         Ok(rows)
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn post(&self, input: &PostJournalInputDto) -> Result<JournalEntryDto, CommandErrorDto> {
         validate_post_input(input)?;
 
@@ -170,6 +171,7 @@ impl<'a> JournalRepository<'a> {
         }
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn post_in_tx(
         &self,
         tx: &Transaction<'_>,
@@ -240,6 +242,7 @@ impl<'a> JournalRepository<'a> {
         Ok(id)
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn assert_period_open_for_date(
         tx: &Transaction<'_>,
         entry_date: &str,
@@ -269,6 +272,7 @@ impl<'a> JournalRepository<'a> {
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 fn validate_post_input(input: &PostJournalInputDto) -> Result<(), CommandErrorDto> {
     if input.lines.len() < 2 {
         return Err(conflict(

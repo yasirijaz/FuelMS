@@ -1,3 +1,1 @@
-
-git tag v0.1.2
-git push origin v0.1.2
+pnpm release:tag 0.1.4

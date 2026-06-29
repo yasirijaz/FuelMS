@@ -15,7 +15,6 @@ use crate::repositories::workspace_repository::WorkspaceRepository;
 /// Registry DB (organizations/workspaces) plus one business DB per active organization.
 pub struct AppDatabase {
     registry: Mutex<Option<DbConnection>>,
-    registry_path: PathBuf,
     business: Mutex<Option<DbConnection>>,
     business_path: Mutex<PathBuf>,
     active_business_org_id: Mutex<Option<String>>,
@@ -29,7 +28,6 @@ impl AppDatabase {
 
         Ok(Self {
             registry: Mutex::new(Some(registry)),
-            registry_path,
             business: Mutex::new(None),
             business_path: Mutex::new(PathBuf::new()),
             active_business_org_id: Mutex::new(None),
@@ -39,10 +37,6 @@ impl AppDatabase {
 
     pub fn app_data_dir(&self) -> &Path {
         &self.app_data_dir
-    }
-
-    pub fn path(&self) -> &Path {
-        &self.registry_path
     }
 
     pub fn business_path(&self) -> PathBuf {
@@ -152,11 +146,6 @@ pub fn app_data_directory(app: &AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| format!("Failed to create app data directory: {e}"))?;
 
     Ok(dir)
-}
-
-/// Resolve the registry database file path under Tauri app data directory.
-pub fn database_path(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app_data_directory(app)?.join("fuelms.sqlite3"))
 }
 
 pub fn backups_directory(app: &AppHandle) -> Result<PathBuf, String> {

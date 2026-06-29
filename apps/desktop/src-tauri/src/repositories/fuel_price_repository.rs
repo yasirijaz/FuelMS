@@ -373,16 +373,6 @@ impl<'a> FuelPriceRepository<'a> {
         .map_err(|e| db_error("DB_UPDATE_FAILED", &e.to_string()))?;
         Ok(())
     }
-
-    fn supersede_tx(
-        tx: &Transaction<'_>,
-        current: &FuelPriceRecordDto,
-        new_id: &str,
-        effective_to_iso: &str,
-    ) -> Result<(), CommandErrorDto> {
-        Self::mark_superseded_tx(tx, current, effective_to_iso)?;
-        Self::link_superseded_tx(tx, &current.id, new_id)
-    }
 }
 
 fn map_query_error(id: &str) -> impl FnOnce(rusqlite::Error) -> CommandErrorDto {

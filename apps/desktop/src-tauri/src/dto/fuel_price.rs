@@ -81,16 +81,4 @@ impl<T: Serialize> CommandResultDto<T> {
             error: None,
         }
     }
-
-    pub fn err(code: &str, message: &str, kind: &str) -> Self {
-        Self {
-            ok: false,
-            value: None,
-            error: Some(CommandErrorDto {
-                code: code.to_string(),
-                message: message.to_string(),
-                kind: kind.to_string(),
-            }),
-        }
-    }
 }

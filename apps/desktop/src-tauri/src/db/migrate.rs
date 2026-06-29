@@ -153,6 +153,7 @@ pub fn run_business_migrations(db: &DbConnection) -> Result<(), String> {
 }
 
 /// Legacy single-database bootstrap (tests only).
+#[cfg(test)]
 pub fn run_migrations(db: &DbConnection) -> Result<(), String> {
     let all_versions: Vec<i64> = ALL_MIGRATIONS.iter().map(|m| m.version).collect();
     apply_migrations(db, &all_versions)
@@ -175,13 +176,6 @@ pub fn max_supported_schema_version() -> i64 {
         .copied()
         .max()
         .unwrap_or(0)
-}
-
-pub fn max_supported_business_schema_version() -> i64 {
-    *BUSINESS_MIGRATION_VERSIONS
-        .iter()
-        .max()
-        .unwrap_or(&0)
 }
 
 #[cfg(test)]

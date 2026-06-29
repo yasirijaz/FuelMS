@@ -494,7 +494,10 @@ fn conflict(code: &str, message: impl Into<String>) -> CommandErrorDto {
 mod tests {
     use super::*;
     use crate::dto::organization::CreateOrganizationInputDto;
-    use crate::repositories::{OrganizationRepository, WorkspaceRepository};
+    use crate::repositories::{
+        organization_repository::OrganizationRepository,
+        workspace_repository::WorkspaceRepository,
+    };
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_root() -> PathBuf {

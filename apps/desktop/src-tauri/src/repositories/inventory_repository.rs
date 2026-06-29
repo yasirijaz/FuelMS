@@ -6,8 +6,6 @@ use crate::dto::inventory::{
     InventoryMovementListQueryDto, InventoryProductSummaryDto,
 };
 
-const VALID_PRODUCT_CODES: [&str; 3] = ["petrol", "diesel", "hobc"];
-
 pub struct InventoryRepository<'a> {
     db: &'a DbConnection,
 }
@@ -174,35 +172,6 @@ impl<'a> InventoryRepository<'a> {
 
         Ok(rows)
     }
-
-    pub fn book_stock_for_product(&self, product_id: &str) -> Result<i64, CommandErrorDto> {
-        let conn = self.db.conn();
-        let qty: i64 = conn
-            .query_row(
-                "SELECT COALESCE(SUM(remaining_milli_litres), 0)
-                 FROM fuel_inventory_batches WHERE product_id = ?1",
-                params![product_id],
-                |row| row.get(0),
-            )
-            .map_err(|e| db_error("DB_QUERY_FAILED", &e.to_string()))?;
-        Ok(qty)
-    }
-
-    pub fn product_id_for_code(&self, code: &str) -> Result<String, CommandErrorDto> {
-        if !VALID_PRODUCT_CODES.contains(&code) {
-            return Err(conflict("INVALID_PRODUCT", "Invalid fuel product."));
-        }
-        let conn = self.db.conn();
-        conn.query_row(
-            "SELECT id FROM fuel_products WHERE code = ?1 AND is_active = 1",
-            params![code],
-            |row| row.get(0),
-        )
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => not_found("FuelProduct", code),
-            _ => db_error("DB_QUERY_FAILED", &e.to_string()),
-        })
-    }
 }
 
 fn db_error(code: &str, message: &str) -> CommandErrorDto {
@@ -210,22 +179,6 @@ fn db_error(code: &str, message: &str) -> CommandErrorDto {
         code: code.to_string(),
         message: message.to_string(),
         kind: "infrastructure".to_string(),
-    }
-}
-
-fn not_found(entity: &str, id: &str) -> CommandErrorDto {
-    CommandErrorDto {
-        code: "NOT_FOUND".to_string(),
-        message: format!("{entity} '{id}' was not found."),
-        kind: "not-found".to_string(),
-    }
-}
-
-fn conflict(code: &str, message: impl Into<String>) -> CommandErrorDto {
-    CommandErrorDto {
-        code: code.to_string(),
-        message: message.into(),
-        kind: "conflict".to_string(),
     }
 }
 
